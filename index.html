@@ -51,6 +51,9 @@
       </div>
 
       <div class="header-actions">
+        <button id="deviceModeToggleBtn" class="btn btn-outline" title="تغییر حالت نمایش بین موبایل و دسکتاپ">
+          <span id="deviceModeIcon">📱</span> <span id="deviceModeText">حالت موبایل</span>
+        </button>
         <button id="themeToggleBtn" class="btn btn-outline btn-icon-only" title="تغییر حالت شب و روز">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
@@ -212,6 +215,16 @@
           </div>
         </div>
 
+        <!-- فیلتر سریع روزها در نمای موبایل -->
+        <div id="mobileDaySelector" class="mobile-day-selector">
+          <button class="mobile-day-chip active" data-day="all">همه روزها</button>
+          <button class="mobile-day-chip" data-day="شنبه">شنبه</button>
+          <button class="mobile-day-chip" data-day="یک‌شنبه">یک‌شنبه</button>
+          <button class="mobile-day-chip" data-day="دوشنبه">دوشنبه</button>
+          <button class="mobile-day-chip" data-day="سه‌شنبه">سه‌شنبه</button>
+          <button class="mobile-day-chip" data-day="چهارشنبه">چهارشنبه</button>
+        </div>
+
         <!-- نمای روزبه‌روز (دقیقاً بر اساس ساختار درخواستی: شنبه تا چهارشنبه، ۱۲ تا ۱۳ استراحت خاکستری) -->
         <div id="dailyScheduleFlow" class="daily-schedule-flow">
           <!-- با جاوااسکریپت پر می‌شود -->
@@ -287,25 +300,25 @@
       </div>
 
       <div class="modal-body">
-        <!-- بخش کپی کدهای گلستان: سلاح اصلی دانشجو در ثانیه‌های نفس‌گیر ثبت‌نام -->
+        <!-- پیام راهنما جهت ثبت نام سریع در گلستان -->
         <div class="golestan-box">
           <div class="golestan-box-header">
             <div class="gbh-title">
-              <span>⚡ کدهای آماده جهت درج در سامانه گلستان:</span>
+              <span>⚡ کدهای اختصاصی جهت درج در سیستم گلستان:</span>
             </div>
-            <button id="copyGolestanBtn" class="btn btn-primary btn-sm" title="کپی همه کدهای گروه‌ها در حافظه موقت">
-              <span id="copyBtnIcon">📋</span> <span id="copyBtnText">کپی یکجای کدهای گلستان</span>
+            <button id="copyGolestanBtn" class="btn btn-outline btn-sm" title="کپی همه کدهای گروه‌ها به صورت یکجا">
+              <span id="copyBtnIcon">📑</span> <span id="copyBtnText">کپی یکجای همه کدها</span>
             </button>
           </div>
-          <div class="golestan-code-preview" id="golestanCodesBox" title="برای کپی کردن می‌توانید روی کادر کلیک کنید">
-            (درسی انتخاب نشده است)
+          <div class="golestan-box-hint" style="margin-top: 0;">
+            💡 <strong>ویژه انتخاب واحد:</strong> برای راحتی شما، هر درس دکمه اختصاصی <strong>«📋 کپی کد»</strong> دارد تا کد همان درس به تنهایی در کلیپ‌بورد کپی شده و مستقیماً در فیلد مربوطه در گلستان الصاق (Paste) شود.
           </div>
-          <div class="golestan-box-hint">
-            💡 این کدها با فرمت استاندارد گروه درسی (مانند ۱۷۰۱۰۱۲_۰۱) آماده شده‌اند تا مستقیماً در فیلدهای ثبت‌نام سامانه گلستان کپی شوند و نیازی به جستجوی دستی نباشد.
+          <div class="golestan-code-preview" id="golestanCodesBox" style="display: none;" title="کدهای تجمیعی">
+            (درسی انتخاب نشده است)
           </div>
         </div>
 
-        <!-- جدول دروس انتخابی با امکان حذف مستقیم -->
+        <!-- جدول دروس انتخابی (نمای دسکتاپ) -->
         <div class="selected-courses-table-wrap">
           <table class="selected-courses-table">
             <thead>
@@ -316,13 +329,19 @@
                 <th>استاد</th>
                 <th>زمان کلاس</th>
                 <th>امتحان پایان‌ترم</th>
-                <th>عملیات</th>
+                <th>کپی کد گلستان</th>
+                <th>حذف</th>
               </tr>
             </thead>
             <tbody id="selectedModalTableBody">
               <!-- با جاوااسکریپت پر می‌شود -->
             </tbody>
           </table>
+        </div>
+
+        <!-- لیست کارت‌های لمسی دروس انتخابی (نمای موبایل) -->
+        <div id="selectedModalCardsMobile" class="selected-courses-cards-mobile">
+          <!-- با جاوااسکریپت پر می‌شود -->
         </div>
       </div>
 
@@ -392,6 +411,32 @@
 
     </div>
   </div>
+
+  <!-- نوار ناوبری پایین صفحه (مخصوص حالت موبایل) -->
+  <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="ناوبری لمسی موبایل">
+    <button class="mobile-nav-item active" data-tab="catalog" title="فهرست دروس ارائه شده">
+      <span class="mn-icon">📖</span>
+      <span class="mn-label">دروس</span>
+      <span class="mn-badge" id="mnCatalogBadge">۵۶</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="schedule" title="برنامه هفتگی کلاس‌ها">
+      <span class="mn-icon">🗓️</span>
+      <span class="mn-label">برنامه</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="exams" title="تقویم امتحانات بهمن">
+      <span class="mn-icon">📝</span>
+      <span class="mn-label">امتحانات</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="guide" title="چارت پیشنهادی ترم ۵">
+      <span class="mn-icon">📌</span>
+      <span class="mn-label">چارت ۵</span>
+    </button>
+    <button class="mobile-nav-item primary-accent" data-tab="my-courses" title="مشاهده دروس انتخابی و کدهای گلستان">
+      <span class="mn-icon">📋</span>
+      <span class="mn-label">دروس من</span>
+      <span class="mn-badge accent" id="mnSelectedBadge">۰</span>
+    </button>
+  </nav>
 
   <!-- کانتینر پیام‌های موقت (Toast) -->
   <div id="toastContainer" class="toast-container"></div>

@@ -48,6 +48,9 @@
   let currentViewMode = 'daily'; // 'daily' یا 'matrix'
   let examCalendarFilter = 'myExams'; // 'myExams' یا 'all'
   let isHonorStudent = true; // ۹۰ درصد دانشجویان معدل الف هستند (سقف ۲۴ واحد)
+  let activeMobileTab = 'catalog'; // 'catalog', 'schedule', 'exams', 'guide'
+  let activeMobileDay = 'all'; // 'all' یا 'شنبه', 'یک‌شنبه', ...
+  let deviceMode = 'auto'; // 'auto', 'mobile', 'desktop'
 
   // --- توابع کمکی تبدیل اعداد و رشته‌ها ---
   function toPersianDigits(num) {
@@ -499,6 +502,7 @@
         <div class="card-meta">
           <span>👨‍🏫 استاد: ${formatInstructor(course.instructor)}</span>
           <span>🔢 کد: ${toPersianDigits(course.code)}</span>
+          <button class="btn-quick-copy" data-code="${course.code}" title="کپی کد این درس برای گلستان">📋 کپی کد</button>
         </div>
         <div class="card-footer">
           <span>🕒 زمان: ${sessionSummary || 'بدون زمان کلاسی'}</span>
@@ -515,6 +519,13 @@
       `;
 
       card.addEventListener('click', (e) => {
+        const copyBtn = e.target.closest('.btn-quick-copy');
+        if (copyBtn) {
+          e.stopPropagation();
+          copySingleCourseCode(course.code, course.name, copyBtn);
+          return;
+        }
+
         if (e.target.closest('button')) {
           e.stopPropagation();
           const action = e.target.getAttribute('data-action');
@@ -536,7 +547,12 @@
 
     container.innerHTML = '';
 
-    DAYS_ORDER.forEach(day => {
+    // فیلتر روزهای نمایش (امکان انتخاب تک‌روز در نمای موبایل)
+    const daysToRender = activeMobileDay === 'all'
+      ? DAYS_ORDER
+      : DAYS_ORDER.filter(d => d === activeMobileDay);
+
+    daysToRender.forEach(day => {
       const daySessions = [];
       selectedCourses.forEach(course => {
         course.sessions.forEach(session => {
@@ -831,6 +847,7 @@
 
   function renderSelectedCoursesModal() {
     const tableBody = document.getElementById('selectedModalTableBody');
+    const cardsMobileContainer = document.getElementById('selectedModalCardsMobile');
     const codesBox = document.getElementById('golestanCodesBox');
     const subtitle = document.getElementById('modalSubtitle');
     const totalUnitsEl = document.getElementById('modalTotalUnits');
@@ -861,7 +878,7 @@
       }
     }
 
-    // کدهای گلستان
+    // کدهای تجمیعی گلستان
     if (codesBox) {
       if (selectedCourses.length === 0) {
         codesBox.textContent = '(هنوز درسی انتخاب نشده است — از فهرست کاتالوگ یا دکمه چینش خودکار درس اضافه کنید)';
@@ -871,13 +888,13 @@
       }
     }
 
-    // جدول دروس
+    // جدول دسکتاپ دروس
     if (tableBody) {
       tableBody.innerHTML = '';
       if (selectedCourses.length === 0) {
         tableBody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
               هنوز هیچ درسی به برنامه اضافه نشده است.
             </td>
           </tr>
@@ -900,9 +917,21 @@
             <td>${sessionSummary}</td>
             <td>${examSummary}</td>
             <td>
+              <button class="btn-copy-single-code" data-code="${course.code}" data-name="${course.name}" title="کپی کد اختصاصی این درس برای گلستان">
+                <span>📋</span> <span>کپی کد</span>
+              </button>
+            </td>
+            <td>
               <button class="modal-remove-btn" data-id="${course.id}" title="حذف این درس از برنامه">حذف ✕</button>
             </td>
           `;
+
+          const copyBtn = tr.querySelector('.btn-copy-single-code');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+              copySingleCourseCode(course.code, course.name, copyBtn);
+            });
+          }
 
           const removeBtn = tr.querySelector('.modal-remove-btn');
           if (removeBtn) {
@@ -915,6 +944,96 @@
           tableBody.appendChild(tr);
         });
       }
+    }
+
+    // کارت‌های لمسی موبایل دروس
+    if (cardsMobileContainer) {
+      cardsMobileContainer.innerHTML = '';
+      if (selectedCourses.length === 0) {
+        cardsMobileContainer.innerHTML = `
+          <div style="text-align: center; color: var(--text-muted); padding: 2rem 1rem; border: 1px dashed var(--border-color); border-radius: var(--radius-md);">
+            هنوز هیچ درسی به برنامه اضافه نشده است.
+          </div>
+        `;
+      } else {
+        selectedCourses.forEach(course => {
+          const sessionSummary = course.sessions && course.sessions.length > 0
+            ? course.sessions.map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' | ')
+            : 'ندارد';
+          const examSummary = course.exam && course.exam.date
+            ? `${toPersianDigits(course.exam.date)} (${toPersianDigits(course.exam.time)})`
+            : 'نامشخص';
+
+          const card = document.createElement('div');
+          card.className = 'mobile-selected-card';
+          card.innerHTML = `
+            <div class="msc-head">
+              <span class="msc-title">${course.name}</span>
+              <span class="msc-units-badge">${toPersianDigits(course.units)} واحد</span>
+            </div>
+            <div class="msc-meta">
+              <div class="msc-code-row">
+                <span>🔢 کد گروه:</span>
+                <code>${toPersianDigits(course.code)}</code>
+              </div>
+              <div>👨‍🏫 استاد: ${formatInstructor(course.instructor)}</div>
+              <div>🕒 زمان کلاس: ${sessionSummary}</div>
+              <div>📝 امتحان: ${examSummary}</div>
+            </div>
+            <div class="msc-actions">
+              <button class="btn-copy-single-code" data-code="${course.code}" data-name="${course.name}" title="کپی کد این درس">
+                <span>📋</span> <span>کپی کد (${toPersianDigits(course.code)})</span>
+              </button>
+              <button class="modal-remove-btn" data-id="${course.id}">حذف ✕</button>
+            </div>
+          `;
+
+          const copyBtn = card.querySelector('.btn-copy-single-code');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+              copySingleCourseCode(course.code, course.name, copyBtn);
+            });
+          }
+
+          const removeBtn = card.querySelector('.modal-remove-btn');
+          if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+              removeCourse(course.id);
+              renderSelectedCoursesModal();
+            });
+          }
+
+          cardsMobileContainer.appendChild(card);
+        });
+      }
+    }
+  }
+
+  // --- کپی کد مجزای یک درس خاص جهت ثبت‌نام در گلستان ---
+  function copySingleCourseCode(code, name, btn) {
+    if (!code) return;
+
+    const onSuccess = () => {
+      if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.classList.add('copied');
+        btn.innerHTML = '<span>✅</span> <span>کپی شد!</span>';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = originalHtml;
+        }, 2000);
+      }
+      showToast(`کد ${toPersianDigits(code)} (${name || ''}) در حافظه کپی شد. مستقیماً در فیلد مربوطه در گلستان Paste کنید!`, 'success');
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(onSuccess).catch(() => {
+        fallbackCopy(code);
+        onSuccess();
+      });
+    } else {
+      fallbackCopy(code);
+      onSuccess();
     }
   }
 
@@ -959,11 +1078,59 @@
     if (icon) icon.textContent = '✅';
     if (text) text.textContent = 'کپی شد!';
     setTimeout(() => {
-      if (icon) icon.textContent = '📋';
-      if (text) text.textContent = 'کپی یکجای کدهای گلستان';
+      if (icon) icon.textContent = '📑';
+      if (text) text.textContent = 'کپی یکجای همه کدها';
     }, 2000);
 
     showToast('کدهای گلستان در کلیپ‌بورد کپی شد. حالا برید پای سامانه گلستان و سریع ثبت کنید تا ظرفیت‌ها پر نشده!', 'success');
+  }
+
+  // --- تشخیص هوشمند دستگاه و مدیریت نمای موبایل / دسکتاپ ---
+  function isDeviceMobile() {
+    if (deviceMode === 'mobile') return true;
+    if (deviceMode === 'desktop') return false;
+    return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  }
+
+  function applyDeviceMode() {
+    const isMobile = isDeviceMobile();
+    document.documentElement.setAttribute('data-device', isMobile ? 'mobile' : 'desktop');
+    document.documentElement.setAttribute('data-active-tab', activeMobileTab);
+
+    const toggleBtn = document.getElementById('deviceModeToggleBtn');
+    const toggleIcon = document.getElementById('deviceModeIcon');
+    const toggleText = document.getElementById('deviceModeText');
+    if (toggleBtn && toggleIcon && toggleText) {
+      if (isMobile) {
+        toggleIcon.textContent = '💻';
+        toggleText.textContent = 'نمای دسکتاپ';
+        toggleBtn.title = 'سوئیچ به نمای بزرگ و چندستونه دسکتاپ';
+      } else {
+        toggleIcon.textContent = '📱';
+        toggleText.textContent = 'نمای موبایل';
+        toggleBtn.title = 'سوئیچ به نمای بهینه‌شده لمسی برای موبایل';
+      }
+    }
+  }
+
+  function switchMobileTab(tabId) {
+    if (tabId === 'my-courses') {
+      openSelectedModal();
+      return;
+    }
+    activeMobileTab = tabId;
+    document.documentElement.setAttribute('data-active-tab', tabId);
+
+    const navItems = document.querySelectorAll('.mobile-nav-item');
+    navItems.forEach(item => {
+      if (item.getAttribute('data-tab') === tabId) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // --- به‌روزرسانی تابلو راهنمای چارت ترم ۵ ---
@@ -1029,6 +1196,14 @@
     if (floatingUnits) floatingUnits.textContent = toPersianDigits(totalUnits);
     if (floatingCount) floatingCount.textContent = toPersianDigits(selectedCourses.length);
 
+    // به‌روزرسانی نشانگرهای نوار ناوبری موبایل
+    const mnCatalogBadge = document.getElementById('mnCatalogBadge');
+    const mnSelectedBadge = document.getElementById('mnSelectedBadge');
+    if (mnCatalogBadge) mnCatalogBadge.textContent = toPersianDigits(allCourses.filter(c => c.isEntry403Allowed).length);
+    if (mnSelectedBadge) mnSelectedBadge.textContent = toPersianDigits(totalUnits);
+
+    applyDeviceMode();
+
     // به‌روزرسانی مودال در صورت باز بودن
     const selectedModal = document.getElementById('selectedCoursesModal');
     if (selectedModal && selectedModal.style.display !== 'none') {
@@ -1048,6 +1223,50 @@
 
   // --- مقداردهی اولیه رویدادها ---
   function initEvents() {
+    // دکمه تغییر دستی حالت نمایش (موبایل / دسکتاپ)
+    const deviceToggleBtn = document.getElementById('deviceModeToggleBtn');
+    if (deviceToggleBtn) {
+      deviceToggleBtn.addEventListener('click', () => {
+        const currentIsMobile = isDeviceMobile();
+        deviceMode = currentIsMobile ? 'desktop' : 'mobile';
+        localStorage.setItem('device_view_mode', deviceMode);
+        applyDeviceMode();
+        showToast(
+          deviceMode === 'mobile'
+            ? '📱 به نمای بهینه‌شده موبایل منتقل شدید (با نوار ناوبری پایین صفحه).'
+            : '💻 به نمای چندستونه و وسیع دسکتاپ بازگشتید.',
+          'info'
+        );
+      });
+    }
+
+    // رویداد کلیک تب‌های نوار ناوبری موبایل
+    const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+    mobileNavItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const tab = item.getAttribute('data-tab');
+        switchMobileTab(tab);
+      });
+    });
+
+    // فیلتر سریع روزها در جدول هفتگی (مخصوص موبایل)
+    const mobileDayChips = document.querySelectorAll('.mobile-day-chip');
+    mobileDayChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        mobileDayChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeMobileDay = chip.getAttribute('data-day');
+        renderDailySchedule(analyzeConflicts().classConflicts);
+      });
+    });
+
+    // تشخیص خودکار تغییر سایز پنجره
+    window.addEventListener('resize', () => {
+      if (deviceMode === 'auto') {
+        applyDeviceMode();
+      }
+    });
+
     const searchInput = document.getElementById('courseSearchInput');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -1243,6 +1462,8 @@
 
   // --- راه‌اندازی برنامه ---
   document.addEventListener('DOMContentLoaded', () => {
+    const savedDevice = localStorage.getItem('device_view_mode');
+    if (savedDevice) deviceMode = savedDevice;
     loadState();
     initEvents();
     updateUI();

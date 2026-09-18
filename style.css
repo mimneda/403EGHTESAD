@@ -1765,6 +1765,399 @@ body {
   font-weight: 700;
   border: 1px solid var(--border-color);
   background: var(--bg-card);
+/* ==========================================================================
+   دکمه‌های اختصاصی کپی کد هر درس (Single-Course Golestan Copy)
+   ========================================================================== */
+.btn-copy-single-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-copy-single-code:hover {
+  background: var(--primary);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-copy-single-code.copied {
+  background: #10b981 !important;
+  border-color: #059669 !important;
+  color: #fff !important;
+}
+
+.btn-quick-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-right: auto;
+  transition: all var(--transition-fast);
+}
+
+.btn-quick-copy:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-quick-copy.copied {
+  background: #10b981 !important;
+  border-color: #059669 !important;
+  color: #fff !important;
+}
+
+/* کارت‌های لمسی دروس انتخابی در مودال (نمای موبایل) */
+.selected-courses-cards-mobile {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-selected-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.msc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.msc-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.msc-units-badge {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.msc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.msc-code-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.msc-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+/* فیلتر سریع روزها در جدول هفتگی */
+.mobile-day-selector {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.85rem;
+  scrollbar-width: none;
+}
+
+.mobile-day-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-day-chip {
+  padding: 0.35rem 0.75rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.mobile-day-chip:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.mobile-day-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 6px var(--primary-glow);
+}
+
+/* ==========================================================================
+   نوار ناوبری پایین صفحه (موبایل داگ / Mobile Bottom Navigation Bar)
+   ========================================================================== */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 62px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  z-index: 120;
+  padding: 0 0.5rem;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+  justify-content: space-around;
+  align-items: center;
+}
+
+[data-theme="dark"] .mobile-bottom-nav {
+  background: rgba(19, 26, 41, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem 0;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+  position: relative;
+  font-family: inherit;
+}
+
+.mobile-nav-item .mn-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.mobile-nav-item .mn-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.mobile-nav-item.active {
+  color: var(--primary);
+}
+
+.mobile-nav-item.active .mn-label {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.mobile-nav-item.primary-accent {
+  color: var(--primary);
+}
+
+.mn-badge {
+  position: absolute;
+  top: 2px;
+  right: calc(50% - 18px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.05rem 0.35rem;
+  border-radius: 9999px;
+  line-height: 1.2;
+}
+
+.mn-badge.accent {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* ==========================================================================
+   طراحی اختصاصی برای نسخه موبایل (Dedicated Mobile Mode)
+   وقتی کاربر با موبایل وارد شود یا دکمه تغییر حالت فشرده شود
+   ========================================================================== */
+[data-device="mobile"] .mobile-bottom-nav {
+  display: flex;
+}
+
+[data-device="mobile"] .floating-selected-container {
+  display: none !important;
+}
+
+[data-device="mobile"] .site-footer {
+  padding-bottom: 6rem;
+}
+
+[data-device="mobile"] .bottom-inspector {
+  bottom: 62px;
+}
+
+[data-device="mobile"] .selected-courses-table-wrap {
+  display: none !important;
+}
+
+[data-device="mobile"] .selected-courses-cards-mobile {
+  display: flex !important;
+}
+
+/* مخفی‌سازی سکشن‌های غیرفعال در موبایل جهت جلوگیری از اسکرول بی‌پایان */
+[data-device="mobile"] .guide-board-container {
+  display: none;
+}
+
+[data-device="mobile"] .sidebar-catalog {
+  display: none;
+  width: 100%;
+  max-width: 100%;
+  border-left: none;
+  height: auto;
+  position: static;
+}
+
+[data-device="mobile"] .schedule-section {
+  display: none;
+}
+
+[data-device="mobile"] .exam-section {
+  display: none;
+}
+
+/* نمایش سکشن فعال تب انتخاب شده */
+[data-device="mobile"][data-active-tab="catalog"] .sidebar-catalog {
+  display: flex !important;
+}
+
+[data-device="mobile"][data-active-tab="schedule"] .schedule-section {
+  display: block !important;
+}
+
+[data-device="mobile"][data-active-tab="exams"] .exam-section {
+  display: block !important;
+}
+
+[data-device="mobile"][data-active-tab="guide"] .guide-board-container {
+  display: block !important;
+}
+
+/* چیدمان کلی موبایل */
+[data-device="mobile"] .main-wrapper {
+  grid-template-columns: 1fr;
+  padding: 0 0.85rem;
+}
+
+[data-device="mobile"] .content-area {
+  padding-bottom: 2rem;
+}
+
+[data-device="mobile"] .header-container {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+[data-device="mobile"] .header-stats {
+  justify-content: space-between;
+}
+
+[data-device="mobile"] .stat-chip {
+  flex: 1 1 calc(50% - 0.4rem);
+  justify-content: center;
+  text-align: center;
+  font-size: 0.76rem;
+}
+
+[data-device="mobile"] .header-actions {
+  justify-content: space-between;
+  width: 100%;
+}
+
+[data-device="mobile"] .header-actions .btn {
+  flex: 1;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.5rem;
+}
+
+[data-device="mobile"] .slots-grid {
+  grid-template-columns: 1fr !important;
+}
+
+[data-device="mobile"] .time-slot-box {
+  min-height: auto;
+  border-left: none;
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-device="mobile"] .exam-day-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+[data-device="mobile"] .exam-day-date-col {
+  width: 100%;
+  border-left: none;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.4rem;
+}
+
+[data-device="mobile"] .modal-card {
+  max-height: 94vh;
+  margin: 0.5rem;
+}
+
+/* Media Query استاندارد کمکی برای رزولوشن‌های زیر 768px */
+@media (max-width: 768px) {
+  .floating-selected-container {
+    bottom: 4.8rem;
+    left: 0.85rem;
+  }
 }
 
 /* Print Friendly Styles */
