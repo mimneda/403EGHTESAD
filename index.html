@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سامانه انتخاب واحد هوشمند و تقویم امتحانات | دانشکده اقتصاد</title>
+  <meta name="description" content="سامانه تعاملی انتخاب واحد و زمان‌بندی هفتگی و امتحانی ویژه دانشجویان ورودی ۴۰۳ دانشکده اقتصاد">
+  
+  <!-- فونت وزیرمتن استاندارد -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- هدر اصلی و نوار آمار -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-group">
+        <div class="logo-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M9 21V9"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>سامانه پایش انتخاب واحد دانشکده اقتصاد</h1>
+          <p title="تلاشی سیستماتیک برای پیش‌بینی و مهار بحران‌های آموزشی">برنامه‌ریزی آموزشی و پایش تداخل امتحانات | نیم‌سال دوم ۱۴۰۳-۱۴۰۴ (بهمن ۱۴۰۵)</p>
+        </div>
+      </div>
+
+      <div class="header-stats">
+        <div class="stat-chip accent" id="chipUnits" title="مجموع واحدهای اخذ شده؛ مراقب ظرفیت مغزی خود باشید">
+          <span>📚 مجموع واحدها:</span>
+          <strong id="headerTotalUnits">۰ / ۲۴ واحد</strong>
+        </div>
+        <button id="honorToggleBtn" class="stat-chip" style="cursor: pointer; background-color: var(--bg-surface);" title="سقف ۲۴ واحد — برای کسانی که فکر می‌کنن معدل الف بودن قراره توی اپلای یا بازار کار براشون معجزه کنه">
+          <span>🌟 سقف: ۲۴ واحد (معدل الف)</span>
+        </button>
+        <div class="stat-chip" id="chipCourses">
+          <span>📑 تعداد درس:</span>
+          <strong id="headerTotalCourses">۰ درس</strong>
+        </div>
+        <div class="stat-chip" id="headerConflictChip">
+          <span>🛡️</span>
+          <span id="headerConflictText">بدون تداخل</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="themeToggleBtn" class="btn btn-outline btn-icon-only" title="تغییر حالت شب و روز">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button id="printBtn" class="btn btn-outline" title="چاپ برگه برنامه؛ برای چسباندن روی دیوار و تماشای لحظه‌به‌لحظه فروپاشی اهداف ترم">
+          <span>🖨️ چاپ برنامه</span>
+        </button>
+        <button id="resetBtn" class="btn btn-outline" title="حذف کل برنامه؛ بزن روش تا ببینی چطور ظرفیت‌ها توی ۳ ثانیه پودر می‌شن">
+          <span>🔄 انصراف و پاک‌سازی</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- تابلو راهنما: چارت پیشنهادی ترم پنجم (ورودی ۴۰۳) -->
+  <div class="guide-board-container">
+    <div class="guide-board">
+      <div class="guide-board-header">
+        <div class="guide-board-title">
+          <span>📌 تابلو راهنمای چارت پیشنهادی ترم پنجم</span>
+          <span class="guide-badge-target">ویژه دانشجویان ورودی ۱۴۰۳ (سقف قانونی ۲۰ واحد)</span>
+        </div>
+        <div class="guide-header-actions">
+          <button id="toggleGuideBoardBtn" class="btn btn-outline btn-sm" title="کوچک‌کردن یا بازکردن تابلو راهنما">
+            <span id="toggleGuideIcon">⌃</span> <span id="toggleGuideText">جمع‌کردن چارت</span>
+          </button>
+          <button id="autoPickTerm5Btn" class="btn btn-primary" title="برداشتن ۵ درس اصلی چارت؛ همون سرفصل‌هایی که قراره در طول ترم به خاطرشون از رشته اقتصاد پشیمون بشید">
+            <span>⚡ چینش خودکار دروس ترم ۵</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- محتوای جمع‌شونده تابلو راهنما -->
+      <div id="guideBoardContent" class="guide-board-collapsible">
+
+      <!-- کارت‌های دروس اصلی ترم ۵ -->
+      <div class="guide-cards-grid">
+        
+        <div class="guide-course-card" data-code="1701012">
+          <div class="gcc-top">
+            <span class="gcc-name">پول و بانکداری</span>
+            <span class="gcc-units">۳ واحد تخصصی</span>
+          </div>
+          <div class="gcc-meta">
+            <span>کد: ۱۷۰۱۰۱۲</span>
+            <span>پیش‌نیاز: ۲۱۴ / ۲۰۷</span>
+          </div>
+        </div>
+
+        <div class="guide-course-card" data-code="1701092">
+          <div class="gcc-top">
+            <span class="gcc-name">آشنایی با اقتصاد ایران</span>
+            <span class="gcc-units">۳ واحد تخصصی</span>
+          </div>
+          <div class="gcc-meta">
+            <span>کد: ۱۷۰۱۰۹۲</span>
+            <span>پیش‌نیاز: ۱۰۶، ۲۰۱</span>
+          </div>
+        </div>
+
+        <div class="guide-course-card" data-code="1701008">
+          <div class="gcc-top">
+            <span class="gcc-name">اقتصاد بخش عمومی ۱</span>
+            <span class="gcc-units">۳ واحد تخصصی</span>
+          </div>
+          <div class="gcc-meta">
+            <span>کد: ۱۷۰۱۰۰۸</span>
+            <span>پیش‌نیاز: ۲۰۷-۲۰۵، ۲۱۶</span>
+          </div>
+        </div>
+
+        <div class="guide-course-card" data-code="1701158">
+          <div class="gcc-top">
+            <span class="gcc-name">اقتصاد کشاورزی</span>
+            <span class="gcc-units">۲ واحد تخصصی</span>
+          </div>
+          <div class="gcc-meta">
+            <span>کد: ۱۷۰۱۱۵۸</span>
+            <span>پیش‌نیاز: ۲۰۴، ۲۱۳</span>
+          </div>
+        </div>
+
+        <div class="guide-course-card" data-code="1701013">
+          <div class="gcc-top">
+            <span class="gcc-name">تجارت بین‌الملل</span>
+            <span class="gcc-units">۳ واحد تخصصی</span>
+          </div>
+          <div class="gcc-meta">
+            <span>کد: ۱۷۰۱۰۱۳</span>
+            <span>پیش‌نیاز: ۲۰۵، ۲۱۹</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- فوتر تابلو راهنما: اولویت‌ها و سقف واحد -->
+      <div class="guide-board-footer">
+        <div>
+          <strong>ترکیب تکمیل ترم ۵:</strong>
+          <span>۱۴ واحد تخصصی اصلی بالا + تا ۱۰ واحد دروس اختیاری و عمومی = <strong>سقف ۲۰ الی ۲۴ واحد</strong></span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <span class="guide-rule-pill">🎯 اولویت ۱: دروس اصلی چارت</span>
+          <span class="guide-rule-pill">✨ اولویت ۲: اختیاری خوشه اصلی</span>
+          <span class="guide-rule-pill">📚 اولویت ۳: سایر دروس مجاز</span>
+          <span class="guide-rule-pill" style="border-color: var(--danger-border); color: var(--danger-text);">🚫 دروس ماقبل ۴۰۲ یا اقتصادسنجی مجاز نیست</span>
+        </div>
+      </div>
+      </div> <!-- پایان guide-board-collapsible -->
+    </div>
+  </div>
+
+  <!-- چیدمان محتوای اصلی -->
+  <main class="main-wrapper">
+    
+    <!-- ستون کناری: فهرست دروس ارائه شده -->
+    <aside class="sidebar-catalog">
+      <div class="sidebar-header">
+        <div class="sidebar-title-row">
+          <h2>
+            <span>📖 کاتالوگ دروس ارائه شده</span>
+          </h2>
+          <span class="badge primary" id="catalogTotalCount">۵۶</span>
+        </div>
+
+        <div class="search-box">
+          <span class="search-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <input type="text" id="courseSearchInput" placeholder="دنبال چی می‌گردی؟ درسی که پر نشده باشه یا استادی که نمره بده؟">
+        </div>
+
+        <div class="filter-tags">
+          <button class="filter-chip active" data-filter="all">📋 همه</button>
+          <button class="filter-chip" data-filter="term5">🌟 اولویت ۱ (ترم ۵)</button>
+          <button class="filter-chip" data-filter="elective">🎯 اولویت ۲ (اختیاری)</button>
+          <button class="filter-chip" data-filter="other">📚 اولویت ۳ (سایر)</button>
+          <button class="filter-chip" data-filter="selected">✅ انتخاب‌شده‌ها</button>
+        </div>
+      </div>
+
+      <!-- لیست اسکرول‌شونده دروس -->
+      <div class="course-list" id="courseList">
+        <!-- کارت‌های دروس با جاوااسکریپت تزریق می‌شوند -->
+      </div>
+    </aside>
+
+    <!-- بخش مرکزی: جدول زمانی هفتگی و برنامه امتحانات -->
+    <section class="content-area">
+      
+      <!-- جدول هفتگی -->
+      <div class="schedule-section">
+        <div class="section-head">
+          <div class="section-title">
+            <span>🗓️ برنامه زمانی هفتگی کلاس‌ها</span>
+          </div>
+          <div class="view-toggle">
+            <button id="toggleDailyView" class="toggle-btn active" title="نمایش توالی روز به روز طبق ساعات رسمی">نمای تفکیک روزها (ساعات رسمی)</button>
+            <button id="toggleMatrixView" class="toggle-btn" title="نمایش ماتریسی کل هفته در یک جدول یکپارچه">نمای ماتریس هفتگی</button>
+          </div>
+        </div>
+
+        <!-- نمای روزبه‌روز (دقیقاً بر اساس ساختار درخواستی: شنبه تا چهارشنبه، ۱۲ تا ۱۳ استراحت خاکستری) -->
+        <div id="dailyScheduleFlow" class="daily-schedule-flow">
+          <!-- با جاوااسکریپت پر می‌شود -->
+        </div>
+
+        <!-- نمای ماتریس هفتگی -->
+        <div id="matrixScheduleView" class="matrix-schedule-view" style="display: none;">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th class="time-col">ساعت / روز</th>
+                <th>شنبه</th>
+                <th>یک‌شنبه</th>
+                <th>دوشنبه</th>
+                <th>سه‌شنبه</th>
+                <th>چهارشنبه</th>
+              </tr>
+            </thead>
+            <tbody id="matrixTableBody">
+              <!-- با جاوااسکریپت پر می‌شود -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- تقویم ردیفی روز به روز امتحانات نهایی بهمن ۱۴۰۵ -->
+      <div class="exam-section">
+        <div class="section-head">
+          <div class="section-title">
+            <span>📝 تقویم جامع آزمون‌های پایان‌ترم (بهمن ۱۴۰۵)</span>
+          </div>
+          <div class="view-toggle">
+            <button id="examFilterMyExams" class="toggle-btn active" title="فقط روزهایی که در آنها امتحان دارید">فقط روزهای امتحان من</button>
+            <button id="examFilterAllDays" class="toggle-btn" title="نمایش کل تقویم ۱۷ روزه بهمن ماه">نمایش کل تقویم بهمن</button>
+          </div>
+        </div>
+
+        <!-- هشدارهای تداخل امتحانی -->
+        <div id="conflictAlerts" class="conflict-alerts-container">
+          <!-- پیام‌های تذکر روزانه یا خطای بحرانی هم‌زمانی -->
+        </div>
+
+        <!-- تایم‌لاین ردیفی روز به روز امتحانات -->
+        <div id="examDaysLinear" class="exam-days-linear-container">
+          <!-- ردیف‌های شنبه ۳ بهمن تا شنبه ۱۷ بهمن با جاوااسکریپت ساخته می‌شوند -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- دکمه شناور دروس انتخابی من (دسترسی سریع و کپی کدهای گلستان) -->
+  <aside id="floatingSelectedContainer" class="floating-selected-container">
+    <button id="floatingSelectedBtn" class="floating-selected-btn" title="مشاهده لیست دروس انتخاب‌شده، حذف دروس و دریافت فوری کدهای گلستان">
+      <span class="floating-btn-icon">📋</span>
+      <span class="floating-btn-label">دروس انتخابی من:</span>
+      <span class="floating-badge" id="floatingBadge"><strong id="floatingSelectedUnits">۰</strong> واحد (<span id="floatingSelectedCount">۰</span> درس)</span>
+      <span class="floating-btn-arrow">▲</span>
+    </button>
+  </aside>
+
+  <!-- مودال یا پنجره مرور دروس انتخابی و کپی کدهای سامانه گلستان -->
+  <div id="selectedCoursesModal" class="app-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 id="modalTitle">📋 خلاصه دروس انتخابی و کدهای سامانه گلستان</h3>
+          <span class="modal-subtitle" id="modalSubtitle">مجموع ۰ واحد در ۰ درس انتخاب شده است</span>
+        </div>
+        <button id="closeModalBtn" class="modal-close-btn" title="بستن پنجره">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- بخش کپی کدهای گلستان: سلاح اصلی دانشجو در ثانیه‌های نفس‌گیر ثبت‌نام -->
+        <div class="golestan-box">
+          <div class="golestan-box-header">
+            <div class="gbh-title">
+              <span>⚡ کدهای آماده جهت درج در سامانه گلستان:</span>
+            </div>
+            <button id="copyGolestanBtn" class="btn btn-primary btn-sm" title="کپی همه کدهای گروه‌ها در حافظه موقت">
+              <span id="copyBtnIcon">📋</span> <span id="copyBtnText">کپی یکجای کدهای گلستان</span>
+            </button>
+          </div>
+          <div class="golestan-code-preview" id="golestanCodesBox" title="برای کپی کردن می‌توانید روی کادر کلیک کنید">
+            (درسی انتخاب نشده است)
+          </div>
+          <div class="golestan-box-hint">
+            💡 این کدها با فرمت استاندارد گروه درسی (مانند ۱۷۰۱۰۱۲_۰۱) آماده شده‌اند تا مستقیماً در فیلدهای ثبت‌نام سامانه گلستان کپی شوند و نیازی به جستجوی دستی نباشد.
+          </div>
+        </div>
+
+        <!-- جدول دروس انتخابی با امکان حذف مستقیم -->
+        <div class="selected-courses-table-wrap">
+          <table class="selected-courses-table">
+            <thead>
+              <tr>
+                <th>نام درس</th>
+                <th>کد گروه</th>
+                <th>واحد</th>
+                <th>استاد</th>
+                <th>زمان کلاس</th>
+                <th>امتحان پایان‌ترم</th>
+                <th>عملیات</th>
+              </tr>
+            </thead>
+            <tbody id="selectedModalTableBody">
+              <!-- با جاوااسکریپت پر می‌شود -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="modal-footer-stats" id="modalFooterStats">
+          <span>📚 مجموع: <strong id="modalTotalUnits">۰ واحد</strong></span>
+          <span id="modalConflictStatus" class="modal-conflict-pill">🛡️ بدون تداخل</span>
+        </div>
+        <div class="modal-footer-actions">
+          <button id="printModalBtn" class="btn btn-outline btn-sm">🖨️ چاپ این برنامه</button>
+          <button id="closeModalFooterBtn" class="btn btn-primary btn-sm">بستن پنجره</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- پانویس سایت -->
+  <footer class="site-footer">
+    <div class="footer-content footer-bold">
+      ساخته شده با ❤️ (صادقانه؟ از همه تان متنفرم.)
+    </div>
+  </footer>
+
+  <!-- باکس شناور پایین صفحه برای نمایش جزییات کامل درس (Inspector) -->
+  <div id="bottomInspector" class="bottom-inspector" role="region" aria-label="مشخصات کامل درس انتخابی">
+    <div class="inspector-inner">
+      
+      <div class="inspector-main-info">
+        <div class="inspector-icon">🎓</div>
+        <div class="inspector-title-block">
+          <h3 id="inspTitle">نام درس</h3>
+          <div class="inspector-subtitle" id="inspCode">کد گروه: -</div>
+        </div>
+      </div>
+
+      <div class="inspector-grid">
+        <div class="inspector-item">
+          <span class="inspector-item-label">استاد درس</span>
+          <span class="inspector-item-value" id="inspInstructor">-</span>
+        </div>
+        <div class="inspector-item">
+          <span class="inspector-item-label">واحد و ظرفیت</span>
+          <span class="inspector-item-value" id="inspUnits">-</span>
+        </div>
+        <div class="inspector-item">
+          <span class="inspector-item-label">زمان‌بندی کلاس</span>
+          <span class="inspector-item-value" id="inspSessions">-</span>
+        </div>
+        <div class="inspector-item">
+          <span class="inspector-item-label">تاریخ و ساعت امتحان</span>
+          <span class="inspector-item-value" id="inspExam">-</span>
+        </div>
+        <div class="inspector-item">
+          <span class="inspector-item-label">پیش‌نیاز</span>
+          <span class="inspector-item-value" id="inspPrereq">-</span>
+        </div>
+        <div class="inspector-item">
+          <span class="inspector-item-label">هم‌نیاز</span>
+          <span class="inspector-item-value" id="inspCoreq">-</span>
+        </div>
+      </div>
+
+      <div class="inspector-actions">
+        <button id="inspActionBtn" class="btn btn-primary">افزودن به برنامه +</button>
+        <button id="closeInspectorBtn" class="inspector-close-btn" title="بستن پنل مشخصات">✕</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- کانتینر پیام‌های موقت (Toast) -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- اسکریپت‌ها -->
+  <script src="courses-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

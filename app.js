@@ -1,0 +1,1251 @@
+/**
+ * سامانه تعاملی انتخاب واحد و زمان‌بندی هفتگی دانشکده اقتصاد
+ * نسخه ویژه دانشجویان ورودی ۴۰۳ همراه با اولویت‌بندی، تابلو راهنما و تقویم ردیفی امتحانات بهمن ۱۴۰۵
+ */
+
+(function () {
+  'use strict';
+
+  // --- پیکربندی روزهای هفته برای جدول کلاسی ---
+  const DAYS_ORDER = ['شنبه', 'یک‌شنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه'];
+  
+  // اسلات‌های زمانی مشخص شده توسط کاربر
+  const TIME_SLOTS = [
+    { id: '08-10', label: '۰۸:۰۰ تا ۱۰:۰۰', start: '08:00', end: '10:00', isBreak: false },
+    { id: '10-12', label: '۱۰:۰۰ تا ۱۲:۰۰', start: '10:00', end: '12:00', isBreak: false },
+    { id: '12-13', label: '۱۲:۰۰ تا ۱۳:۰۰', start: '12:00', end: '13:00', isBreak: true, title: 'استراحت و ناهار' },
+    { id: '13-15', label: '۱۳:۰۰ تا ۱۵:۰۰', start: '13:00', end: '15:00', isBreak: false },
+    { id: '15-17', label: '۱۵:۰۰ تا ۱۷:۰۰', start: '15:00', end: '17:00', isBreak: false },
+    { id: '17-19', label: '۱۷:۰۰ تا ۱۹:۰۰', start: '17:00', end: '19:00', isBreak: false }
+  ];
+
+  // تقویم رسمی و ردیفی امتحانات بهمن ۱۴۰۵ (بر اساس تقویم آپلود شده و نکات کاربر)
+  const EXAM_CALENDAR_DAYS = [
+    { date: '1405.11.01', dayName: 'پنج‌شنبه', title: '۱ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'پیش از آغاز امتحانات تخصصی' },
+    { date: '1405.11.02', dayName: 'جمعه', title: '۲ بهمن ۱۴۰۵', isHoliday: true, isGeneral: false, note: 'تعطیل پایان هفته' },
+    { date: '1405.11.03', dayName: 'شنبه', title: '۳ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'آغاز امتحانات پایان‌ترم دانشکده' },
+    { date: '1405.11.04', dayName: 'یک‌شنبه', title: '۴ بهمن ۱۴۰۵', isHoliday: true, isGeneral: false, note: '🔴 تعطیل رسمی — توقف آزمون‌های دانشکده' },
+    { date: '1405.11.05', dayName: 'دوشنبه', title: '۵ بهمن ۱۴۰۵', isHoliday: false, isGeneral: true, note: '🔵 امتحانات دروس عمومی دانشگاه' },
+    { date: '1405.11.06', dayName: 'سه‌شنبه', title: '۶ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'روز امتحانی دانشکده' },
+    { date: '1405.11.07', dayName: 'چهارشنبه', title: '۷ بهمن ۱۴۰۵', isHoliday: false, isGeneral: true, note: '🔵 امتحانات دروس عمومی دانشگاه' },
+    { date: '1405.11.08', dayName: 'پنج‌شنبه', title: '۸ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'فرجه و پایان هفته' },
+    { date: '1405.11.09', dayName: 'جمعه', title: '۹ بهمن ۱۴۰۵', isHoliday: true, isGeneral: false, note: 'تعطیل پایان هفته' },
+    { date: '1405.11.10', dayName: 'شنبه', title: '۱۰ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'روز امتحانی دانشکده' },
+    { date: '1405.11.11', dayName: 'یک‌شنبه', title: '۱۱ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'روز امتحانی دانشکده' },
+    { date: '1405.11.12', dayName: 'دوشنبه', title: '۱۲ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'روز امتحانی دانشکده' },
+    { date: '1405.11.13', dayName: 'سه‌شنبه', title: '۱۳ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'روز امتحانی دانشکده' },
+    { date: '1405.11.14', dayName: 'چهارشنبه', title: '۱۴ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'روز امتحانی دانشکده' },
+    { date: '1405.11.15', dayName: 'پنج‌شنبه', title: '۱۵ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'فرجه مطالعه' },
+    { date: '1405.11.16', dayName: 'جمعه', title: '۱۶ بهمن ۱۴۰۵', isHoliday: true, isGeneral: false, note: 'تعطیل پایان هفته' },
+    { date: '1405.11.17', dayName: 'شنبه', title: '۱۷ بهمن ۱۴۰۵', isHoliday: false, isGeneral: false, note: 'پایان امتحانات دانشکده اقتصاد' }
+  ];
+
+  let allCourses = window.COURSES_DATA || [];
+  let selectedCourses = [];
+  let activeInspectorCourse = null;
+  let currentSearch = '';
+  let activeFilter = 'all'; // 'all', 'term5', 'elective', 'other', 'selected'
+  let currentViewMode = 'daily'; // 'daily' یا 'matrix'
+  let examCalendarFilter = 'myExams'; // 'myExams' یا 'all'
+  let isHonorStudent = true; // ۹۰ درصد دانشجویان معدل الف هستند (سقف ۲۴ واحد)
+
+  // --- توابع کمکی تبدیل اعداد و رشته‌ها ---
+  function toPersianDigits(num) {
+    if (num === null || num === undefined) return '';
+    const pDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return String(num).replace(/\d/g, d => pDigits[d]);
+  }
+
+  function normalizeName(name) {
+    return (name || '').replace(/\s+/g, ' ').trim();
+  }
+
+  // اضافه کردن ایموجی تاج 👑 برای استاد نگین تاجی و استاد اکبری
+  function formatInstructor(name) {
+    if (!name) return 'نامشخص';
+    if (name.includes('نگين تاجي') || name.includes('نگین تاجی') || name.includes('اكبري') || name.includes('اکبری')) {
+      return `${name} 👑`;
+    }
+    return name;
+  }
+
+  // ذخیره‌سازی و بازیابی وضعیت
+  function saveState() {
+    try {
+      const ids = selectedCourses.map(c => c.id);
+      localStorage.setItem('selected_courses_v2', JSON.stringify(ids));
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem('selected_courses_v2');
+      if (raw) {
+        const ids = JSON.parse(raw);
+        selectedCourses = allCourses.filter(c => ids.includes(c.id) && c.isEntry403Allowed);
+      }
+    } catch (e) {
+      console.warn('LocalStorage load error:', e);
+      selectedCourses = [];
+    }
+  }
+
+  // --- سیستم نمایش پیام موقت (Toast) ---
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let label = '[اطلاعیه]';
+    if (type === 'warning') label = '[هشدار]';
+    if (type === 'error') label = '[خطای سامانه]';
+    if (type === 'success') label = '[تأیید]';
+
+    toast.innerHTML = `<span class="toast-label">${label}</span> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-10px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 4500);
+  }
+
+  // --- بررسی همپوشانی بازه‌های زمانی ---
+  function timeToMinutes(tStr) {
+    const parts = (tStr || '').split(':').map(Number);
+    if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return 0;
+    return parts[0] * 60 + parts[1];
+  }
+
+  function timesOverlap(startA, endA, startB, endB) {
+    const sA = timeToMinutes(startA);
+    const eA = timeToMinutes(endA);
+    const sB = timeToMinutes(startB);
+    const eB = timeToMinutes(endB);
+    return Math.max(sA, sB) < Math.min(eA, eB);
+  }
+
+  function sessionMatchesSlot(sessionTime, slot) {
+    if (!sessionTime) return false;
+    const [sStart, sEnd] = sessionTime.split('-');
+    if (!sStart || !sEnd) return false;
+    return timesOverlap(sStart, sEnd, slot.start, slot.end);
+  }
+
+  // --- تحلیل تداخل‌های امتحانی و کلاسی ---
+  function analyzeConflicts() {
+    const examConflicts = [];
+    const classConflicts = [];
+
+    // ۱. بررسی تداخل امتحانات
+    const examsByDate = {};
+    selectedCourses.forEach(c => {
+      if (c.exam && c.exam.date) {
+        const d = c.exam.date;
+        if (!examsByDate[d]) examsByDate[d] = [];
+        examsByDate[d].push(c);
+      }
+    });
+
+    Object.keys(examsByDate).forEach(date => {
+      const list = examsByDate[date];
+      if (list.length > 1) {
+        let exactSameHour = false;
+        const sameHourPairs = [];
+
+        for (let i = 0; i < list.length; i++) {
+          for (let j = i + 1; j < list.length; j++) {
+            const timeA = list[i].exam.time;
+            const timeB = list[j].exam.time;
+            if (timeA && timeB) {
+              const [sA, eA] = timeA.split('-');
+              const [sB, eB] = timeB.split('-');
+              if (timesOverlap(sA, eA, sB, eB)) {
+                exactSameHour = true;
+                sameHourPairs.push([list[i], list[j]]);
+              }
+            }
+          }
+        }
+
+        if (exactSameHour) {
+          sameHourPairs.forEach(([cA, cB]) => {
+            examConflicts.push({
+              level: 'danger',
+              date: date,
+              courses: [cA, cB],
+              message: `تداخل ساعت امتحان: سیستم آموزش معتقده می‌تونید مثل فوتون کوانتومی همزمان در دو سالن مجزا حاضر بشید و آزمون بدید! («${cA.name}» و «${cB.name}» در ساعت ${toPersianDigits(cA.exam.time)} تاریخ ${toPersianDigits(date)})`
+            });
+          });
+        } else {
+          examConflicts.push({
+            level: 'warning',
+            date: date,
+            courses: list,
+            message: `دو امتحان در یک روز: تسلیت صمیمانه! از الان برای حمله پانیک و سردرد عصرگاهی بعد از امتحان دوم (${list.map(c => c.name).join(' و ')}) وقت قبلی بگیرید.`
+          });
+        }
+      }
+    });
+
+    // ۲. بررسی تداخل کلاس‌ها در طول هفته
+    for (let i = 0; i < selectedCourses.length; i++) {
+      for (let j = i + 1; j < selectedCourses.length; j++) {
+        const cA = selectedCourses[i];
+        const cB = selectedCourses[j];
+
+        cA.sessions.forEach(sA => {
+          cB.sessions.forEach(sB => {
+            if (sA.day === sB.day) {
+              const [startA, endA] = (sA.time || '').split('-');
+              const [startB, endB] = (sB.time || '').split('-');
+              if (timesOverlap(startA, endA, startB, endB)) {
+                classConflicts.push({
+                  day: sA.day,
+                  timeA: sA.time,
+                  timeB: sB.time,
+                  courses: [cA, cB]
+                });
+              }
+            }
+          });
+        });
+      }
+    }
+
+    return { examConflicts, classConflicts };
+  }
+
+  // --- اعمال قواعد ورودی ۴۰۳ و انتخاب واحد ---
+  function canAddCourse(course) {
+    // قاعده ورودی ۴۰۳: اگر درس تا حداکثر ورودی ۴۰۲ باشد یا اقتصادسنجی باشد
+    if (!course.isEntry403Allowed) {
+      return {
+        allowed: false,
+        reason: course.disabledReason || 'این درس برای دانشجویان ورودی ۴۰۳ مجاز نمی‌باشد.'
+      };
+    }
+
+    // آیا قبلاً اخذ شده؟
+    if (selectedCourses.some(c => c.id === course.id)) {
+      return { allowed: false, reason: 'این درس هم‌اکنون در برنامه شما موجود است.' };
+    }
+
+    // قاعده انحصار استاد: دانشجو نمیتواند دو درس هم‌نام را با دو استاد بردارد
+    const courseNameClean = normalizeName(course.name);
+    const existingSameName = selectedCourses.find(c => normalizeName(c.name) === courseNameClean);
+    if (existingSameName) {
+      return {
+        conflictType: 'SAME_COURSE_DIFFERENT_PROF',
+        reason: `دو تا استاد برای یه درس؟ مگه مسابقه شانس گلستانه؟ سیستم وفاداری می‌طلبه؛ اول قبلی («${formatInstructor(existingSameName.instructor)}») رو بنداز دور بعد بیا سراغ این.`
+      };
+    }
+
+    // بررسی سقف مجاز واحد (۲۰ واحد عادی یا ۲۴ واحد معدل الف)
+    const maxUnits = isHonorStudent ? 24 : 20;
+    const currentTotal = selectedCourses.reduce((sum, c) => sum + (c.units || 0), 0);
+    if (currentTotal + (course.units || 0) > maxUnits) {
+      return {
+        allowed: false,
+        reason: `از سقف مجاز (${toPersianDigits(maxUnits)} واحد) زدی بالا! آروم بگیر دانشمند، مغزت تا دی‌ماه هم دووم نمیاره چه برسه بهمن؛ آموزش هم اجازه چنین خودکشی تحصیلی‌ای رو نمیده.`
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  function addCourse(course, silent = false) {
+    const check = canAddCourse(course);
+    if (!check.allowed) {
+      if (!silent) showToast(check.reason, 'warning');
+      return false;
+    }
+
+    selectedCourses.push(course);
+    saveState();
+    updateUI();
+    if (!silent) showToast(`درس «${course.name}» اضافه شد. به جمع بدهکاران شب امتحان خوش آمدید.`, 'success');
+    return true;
+  }
+
+  function removeCourse(courseId) {
+    const idx = selectedCourses.findIndex(c => c.id === courseId);
+    if (idx !== -1) {
+      const removed = selectedCourses.splice(idx, 1)[0];
+      saveState();
+      updateUI();
+      showToast(`درس «${removed.name}» حذف شد. یک فاجعه کمتر برای شب امتحان.`, 'info');
+    }
+  }
+
+  // --- چینش خودکار دروس ترم پنجم (پیشنهادی چارت ۴۰۳) ---
+  function autoPickTerm5() {
+    // کدهای ۵ درس تخصصی ترم ۵:
+    // پول و بانکداری: 1701012
+    // آشنایی با اقتصاد ایران: 1701092
+    // اقتصاد بخش عمومی 1: 1701008
+    // اقتصاد کشاورزی: 1701158
+    // تجارت بین الملل: 1701013
+    const term5TargetCodes = ['1701012', '1701092', '1701008', '1701158', '1701013'];
+
+    let addedCount = 0;
+    term5TargetCodes.forEach(code => {
+      // پیدا کردن گروه‌های این درس که مجاز برای ۴۰۳ هستند
+      const availableSections = allCourses.filter(c => c.code.startsWith(code) && c.isEntry403Allowed);
+      
+      // آیا درسی با این نام قبلاً انتخاب شده؟
+      const alreadyPicked = selectedCourses.some(c => c.code.startsWith(code));
+      if (!alreadyPicked && availableSections.length > 0) {
+        // انتخاب گروه اول به عنوان پیش‌فرض معتبر
+        if (addCourse(availableSections[0], true)) {
+          addedCount++;
+        }
+      }
+    });
+
+    if (addedCount > 0) {
+      updateUI();
+      showToast(`${toPersianDigits(addedCount)} درس چارت ترم ۵ اخذ شد. از الان تسلیت صمیمانه ما رو برای شب‌های امتحان بهمن پذیرا باشید.`, 'success');
+    } else {
+      showToast('دروس چارت ترم ۵ از قبل توی برنامه‌ت هست؛ دنبال معجزه جدیدی می‌گردی؟', 'info');
+    }
+  }
+
+  // --- باز و بسته کردن پنل مشخصات پایین صفحه (Inspector) ---
+  function openInspector(course) {
+    activeInspectorCourse = course;
+    renderInspector();
+    const inspectorEl = document.getElementById('bottomInspector');
+    if (inspectorEl) {
+      inspectorEl.classList.add('active');
+    }
+  }
+
+  function closeInspector() {
+    const inspectorEl = document.getElementById('bottomInspector');
+    if (inspectorEl) {
+      inspectorEl.classList.remove('active');
+    }
+  }
+
+  // --- رندر پنل مشخصات کامل درس در پایین صفحه ---
+  function renderInspector() {
+    if (!activeInspectorCourse) return;
+    const c = activeInspectorCourse;
+    const isSelected = selectedCourses.some(item => item.id === c.id);
+
+    document.getElementById('inspTitle').textContent = c.name;
+    document.getElementById('inspCode').textContent = `کد گروه: ${toPersianDigits(c.code)}`;
+    document.getElementById('inspInstructor').textContent = formatInstructor(c.instructor);
+    document.getElementById('inspUnits').textContent = `${toPersianDigits(c.units)} واحد (ظرفیت: ${toPersianDigits(c.capacity)})`;
+
+    const sessionsStr = c.sessions.map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' | ');
+    document.getElementById('inspSessions').textContent = sessionsStr || 'ثبت نشده';
+
+    let examStr = 'نامشخص';
+    if (c.exam && c.exam.date) {
+      examStr = `${toPersianDigits(c.exam.date)} (ساعت ${toPersianDigits(c.exam.time)})`;
+    }
+    document.getElementById('inspExam').textContent = examStr;
+
+    document.getElementById('inspPrereq').textContent = c.prerequisites || 'ندارد (عجیبه که سیستم چوب لای چرختون نذاشته)';
+    document.getElementById('inspCoreq').textContent = c.corequisites || 'ندارد';
+
+    const actionBtn = document.getElementById('inspActionBtn');
+    if (!c.isEntry403Allowed) {
+      actionBtn.textContent = 'غیرمجاز (مخصوص ماقبل ۴۰۲)';
+      actionBtn.className = 'btn btn-outline';
+      actionBtn.disabled = true;
+      actionBtn.onclick = null;
+    } else if (isSelected) {
+      actionBtn.textContent = 'حذف از برنامه';
+      actionBtn.className = 'btn btn-outline';
+      actionBtn.style.color = 'var(--danger-text)';
+      actionBtn.style.borderColor = 'var(--danger-border)';
+      actionBtn.disabled = false;
+      actionBtn.onclick = () => {
+        removeCourse(c.id);
+        renderInspector();
+      };
+    } else {
+      actionBtn.textContent = 'افزودن به برنامه +';
+      actionBtn.className = 'btn btn-primary';
+      actionBtn.style.color = '#fff';
+      actionBtn.style.borderColor = 'transparent';
+      actionBtn.disabled = false;
+      actionBtn.onclick = () => {
+        if (addCourse(c)) {
+          renderInspector();
+        }
+      };
+    }
+  }
+
+  function normalizeSearch(str) {
+    return (str || '')
+      .replace(/ي/g, 'ی')
+      .replace(/ك/g, 'ک')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  // --- رندر سایدبار کاتالوگ با اولویت‌بندی ---
+  function renderCatalog() {
+    const listContainer = document.getElementById('courseList');
+    if (!listContainer) return;
+
+    let filtered = allCourses.filter(c => {
+      const q = normalizeSearch(currentSearch);
+      const matchSearch = !q || 
+        normalizeSearch(c.name).includes(q) || 
+        normalizeSearch(c.instructor).includes(q) || 
+        c.code.toLowerCase().includes(q);
+
+      if (!matchSearch) return false;
+
+      if (activeFilter === 'term5') return c.category === 'term5';
+      if (activeFilter === 'elective') return c.category === 'elective';
+      if (activeFilter === 'other') return c.category === 'other';
+      if (activeFilter === 'selected') return selectedCourses.some(sc => sc.id === c.id);
+      return true;
+    });
+
+    // مرتب‌سازی بر اساس اولویت (اولویت ۱ سپس ۲ سپس ۳ و در آخر غیرمجازها)
+    filtered.sort((a, b) => {
+      const pA = a.isEntry403Allowed ? a.priority : 99;
+      const pB = b.isEntry403Allowed ? b.priority : 99;
+      if (pA !== pB) return pA - pB;
+      return a.name.localeCompare(b.name, 'fa');
+    });
+
+    listContainer.innerHTML = '';
+    document.getElementById('catalogTotalCount').textContent = toPersianDigits(filtered.length);
+
+    if (filtered.length === 0) {
+      listContainer.innerHTML = `
+        <div style="text-align:center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">
+          موردی یافت نشد؛ شاید گلستان از اساس این درس را ارائه نداده باشد.
+        </div>
+      `;
+      return;
+    }
+
+    let lastPriority = null;
+
+    filtered.forEach(course => {
+      const isSelected = selectedCourses.some(c => c.id === course.id);
+      const isAllowed = course.isEntry403Allowed;
+
+      // اضافه کردن سربرگ اولویت در نمای عمومی
+      if (activeFilter === 'all') {
+        const currentGroup = !isAllowed ? 'disabled' : course.priority;
+        if (currentGroup !== lastPriority) {
+          lastPriority = currentGroup;
+          const sep = document.createElement('div');
+          if (currentGroup === 1) {
+            sep.className = 'catalog-priority-separator priority-1';
+            sep.innerHTML = '<span>🌟 اولویت ۱: دروس مصوب چارت ترم ۵</span>';
+          } else if (currentGroup === 2) {
+            sep.className = 'catalog-priority-separator priority-2';
+            sep.innerHTML = '<span>🎯 اولویت ۲: دروس اختیاری مصوب خوشه اصلی</span>';
+          } else if (currentGroup === 3) {
+            sep.className = 'catalog-priority-separator';
+            sep.innerHTML = '<span>📚 اولویت ۳: سایر دروس مجاز دانشکده</span>';
+          } else {
+            sep.className = 'catalog-priority-separator priority-disabled';
+            sep.innerHTML = '<span>🚫 غیرمجاز برای ورودی ۴۰۳ (مخصوص ماقبل ۴۰۲ یا اقتصادسنجی)</span>';
+          }
+          listContainer.appendChild(sep);
+        }
+      }
+
+      const card = document.createElement('div');
+      card.className = `catalog-card ${isSelected ? 'selected' : ''} ${!isAllowed ? 'disabled-card' : ''}`;
+      
+      const sessionSummary = course.sessions.map(s => `${s.day} ${toPersianDigits(s.time)}`).join('، ');
+
+      let priorityBadge = '';
+      if (course.category === 'term5') {
+        priorityBadge = '<span class="badge term5-badge">چارت ترم ۵</span>';
+      } else if (course.category === 'elective') {
+        priorityBadge = '<span class="badge elective-badge">اختیاری مصوب</span>';
+      }
+
+      let restrictionBadge = '';
+      if (!isAllowed) {
+        if (course.isEconometrics) {
+          restrictionBadge = '<span class="badge danger-tag">موقتاً غیرفعال</span>';
+        } else {
+          restrictionBadge = '<span class="badge danger-tag">مخصوص ماقبل ۴۰۲</span>';
+        }
+      }
+
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-title">${course.name}</div>
+          <div class="card-badges">
+            ${priorityBadge}
+            ${restrictionBadge}
+            <span class="badge primary">${toPersianDigits(course.units)} واحد</span>
+          </div>
+        </div>
+        <div class="card-meta">
+          <span>👨‍🏫 استاد: ${formatInstructor(course.instructor)}</span>
+          <span>🔢 کد: ${toPersianDigits(course.code)}</span>
+        </div>
+        <div class="card-footer">
+          <span>🕒 زمان: ${sessionSummary || 'بدون زمان کلاسی'}</span>
+          <div>
+            ${!isAllowed ? `
+              <button class="card-action-btn disabled" disabled title="${course.disabledReason}">غیرمجاز</button>
+            ` : isSelected ? `
+              <button class="card-action-btn remove" data-action="remove">حذف ✕</button>
+            ` : `
+              <button class="card-action-btn add" data-action="add">افزودن +</button>
+            `}
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('button')) {
+          e.stopPropagation();
+          const action = e.target.getAttribute('data-action');
+          if (action === 'add') addCourse(course);
+          else if (action === 'remove') removeCourse(course.id);
+          return;
+        }
+        openInspector(course);
+      });
+
+      listContainer.appendChild(card);
+    });
+  }
+
+  // --- رندر جدول زمانی هفتگی روزبه‌روز (شنبه تا چهارشنبه) ---
+  function renderDailySchedule(classConflicts) {
+    const container = document.getElementById('dailyScheduleFlow');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    DAYS_ORDER.forEach(day => {
+      const daySessions = [];
+      selectedCourses.forEach(course => {
+        course.sessions.forEach(session => {
+          if (session.day === day) {
+            daySessions.push({ course, session });
+          }
+        });
+      });
+
+      const dayCard = document.createElement('div');
+      dayCard.className = 'day-schedule-card';
+
+      const header = document.createElement('div');
+      header.className = 'day-card-header';
+      header.innerHTML = `
+        <div class="day-card-title">
+          <span>📅 روز ${day}</span>
+        </div>
+        <span class="day-count-badge">
+          ${daySessions.length > 0 ? `${toPersianDigits(daySessions.length)} کلاس` : 'بدون کلاس'}
+        </span>
+      `;
+      dayCard.appendChild(header);
+
+      const slotsGrid = document.createElement('div');
+      slotsGrid.className = 'slots-grid';
+
+      TIME_SLOTS.forEach(slot => {
+        const slotBox = document.createElement('div');
+        slotBox.className = `time-slot-box ${slot.isBreak ? 'break-slot' : ''}`;
+
+        // ساعت ۱۲ تا ۱: استراحت (خاکستری متمایز)
+        if (slot.isBreak) {
+          slotBox.innerHTML = `
+            <div class="break-tag">☕ [تنفس رسمی]</div>
+            <div class="break-text">${slot.title}</div>
+            <div class="break-subtext">نبرد تن‌به‌تن برای قورمه‌سبزی کافوری سلف و صف بی‌پایان ژتون</div>
+          `;
+        } else {
+          slotBox.innerHTML = `
+            <div class="slot-time-label">
+              <span>⏰ ${slot.label}</span>
+            </div>
+            <div class="slot-content"></div>
+          `;
+
+          const contentEl = slotBox.querySelector('.slot-content');
+          const matchingSessions = daySessions.filter(item => sessionMatchesSlot(item.session.time, slot));
+
+          if (matchingSessions.length === 0) {
+            contentEl.innerHTML = `<div class="slot-empty" title="لحظاتی نادر از آرامش در طول هفته">بدون کلاس</div>`;
+          } else {
+            matchingSessions.forEach(({ course, session }) => {
+              const hasClassConflict = matchingSessions.length > 1;
+
+              const itemEl = document.createElement('div');
+              itemEl.className = `slot-course-item ${hasClassConflict ? 'has-conflict' : ''}`;
+              itemEl.title = 'برای مشاهده جزییات کلیک کنید';
+
+              itemEl.innerHTML = `
+                <div class="slot-course-name">${course.name}</div>
+                <div class="slot-course-instructor">${formatInstructor(course.instructor)}</div>
+                ${hasClassConflict ? '<div class="slot-conflict-tag">[تداخل زمانی — یا همزاد بیار یا التماس رفیق برای غیبت نخوردن]</div>' : ''}
+              `;
+
+              itemEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openInspector(course);
+              });
+
+              contentEl.appendChild(itemEl);
+            });
+          }
+        }
+
+        slotsGrid.appendChild(slotBox);
+      });
+
+      dayCard.appendChild(slotsGrid);
+      container.appendChild(dayCard);
+    });
+  }
+
+  // --- رندر نمای ماتریسی هفتگی ---
+  function renderMatrixSchedule(classConflicts) {
+    const tableBody = document.getElementById('matrixTableBody');
+    if (!tableBody) return;
+
+    tableBody.innerHTML = '';
+
+    TIME_SLOTS.forEach(slot => {
+      const row = document.createElement('tr');
+
+      const timeCell = document.createElement('th');
+      timeCell.className = 'time-col';
+      timeCell.textContent = slot.label;
+      row.appendChild(timeCell);
+
+      if (slot.isBreak) {
+        const breakCell = document.createElement('td');
+        breakCell.colSpan = DAYS_ORDER.length;
+        breakCell.className = 'break-cell';
+        breakCell.textContent = 'استراحت و ناهار (ساعت ۱۲:۰۰ تا ۱۳:۰۰) — نبرد تن‌به‌تن برای دریافت غذا در صف بی‌پایان سلف';
+        row.appendChild(breakCell);
+      } else {
+        DAYS_ORDER.forEach(day => {
+          const cell = document.createElement('td');
+          cell.className = 'matrix-slot-cell';
+
+          const dayClasses = [];
+          selectedCourses.forEach(course => {
+            course.sessions.forEach(session => {
+              if (session.day === day && sessionMatchesSlot(session.time, slot)) {
+                dayClasses.push(course);
+              }
+            });
+          });
+
+          if (dayClasses.length > 0) {
+            dayClasses.forEach(course => {
+              const itemEl = document.createElement('div');
+              itemEl.className = `slot-course-item ${dayClasses.length > 1 ? 'has-conflict' : ''}`;
+              itemEl.innerHTML = `
+                <div class="slot-course-name">${course.name}</div>
+                <div class="slot-course-instructor">${formatInstructor(course.instructor)}</div>
+              `;
+              itemEl.addEventListener('click', () => openInspector(course));
+              cell.appendChild(itemEl);
+            });
+          }
+
+          row.appendChild(cell);
+        });
+      }
+
+      tableBody.appendChild(row);
+    });
+  }
+
+  // --- رندر تقویم ردیفی روز به روز امتحانات نهایی (بهمن ۱۴۰۵) ---
+  function renderLinearExamSchedule(examConflicts) {
+    const alertsContainer = document.getElementById('conflictAlerts');
+    const linearContainer = document.getElementById('examDaysLinear');
+
+    if (!alertsContainer || !linearContainer) return;
+
+    alertsContainer.innerHTML = '';
+    linearContainer.innerHTML = '';
+
+    // نمایش هشدارهای بالایی تداخل
+    if (examConflicts.length > 0) {
+      examConflicts.forEach(conf => {
+        const alertEl = document.createElement('div');
+        alertEl.className = `alert-card ${conf.level}`;
+        alertEl.innerHTML = `
+          <span class="alert-icon">[${conf.level === 'danger' ? 'خطای قطعی' : 'هشدار تراکم'}]</span>
+          <div>${conf.message}</div>
+        `;
+        alertsContainer.appendChild(alertEl);
+      });
+    }
+
+    // دکمه‌های سوئیچ تقویم امتحانات
+    const filterMyBtn = document.getElementById('examFilterMyExams');
+    const filterAllBtn = document.getElementById('examFilterAllDays');
+    if (filterMyBtn && filterAllBtn) {
+      if (examCalendarFilter === 'myExams') {
+        filterMyBtn.classList.add('active');
+        filterAllBtn.classList.remove('active');
+      } else {
+        filterAllBtn.classList.add('active');
+        filterMyBtn.classList.remove('active');
+      }
+    }
+
+    // تعیین روزهای قابل نمایش بر اساس فیلتر فعال (فقط روزهای من یا کل تقویم بهمن)
+    let daysToRender = EXAM_CALENDAR_DAYS;
+    if (examCalendarFilter === 'myExams') {
+      daysToRender = EXAM_CALENDAR_DAYS.filter(calendarDay => {
+        return selectedCourses.some(c => c.exam && c.exam.date === calendarDay.date);
+      });
+
+      if (daysToRender.length === 0) {
+        linearContainer.innerHTML = `
+          <div class="empty-exam-box" style="text-align:center; padding: 2.2rem 1.5rem; color: var(--text-secondary); border: 1px dashed var(--border-color); border-radius: var(--radius-md); background: var(--bg-surface);">
+            <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">📅</div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 0.35rem;">در حال حاضر درسی با تاریخ امتحان مشخص در برنامه‌تان وجود ندارد</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+              از کاتالوگ سمت راست یا دکمه «چینش خودکار ترم ۵» درس بردارید تا تقویم فشرده امتحانات شما شکل بگیرد؛ یا جهت مرور تقویم کلی دانشگاه دکمه «نمایش کل تقویم بهمن» را بزنید.
+            </div>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    // ساخت ردیف‌های روزبه‌روز تقویم بهمن ماه
+    daysToRender.forEach(calendarDay => {
+      // دروس انتخاب شده با امتحان در این تاریخ
+      const matchingExams = selectedCourses.filter(c => c.exam && c.exam.date === calendarDay.date);
+
+      // بررسی تداخل در این روز
+      const hasExactConflict = examConflicts.some(
+        conf => conf.level === 'danger' && conf.date === calendarDay.date
+      );
+      const hasDayConflict = examConflicts.some(
+        conf => conf.level === 'warning' && conf.date === calendarDay.date
+      );
+
+      const row = document.createElement('div');
+      let rowClass = 'exam-day-row';
+      if (matchingExams.length > 0) rowClass += ' has-exams';
+      if (hasExactConflict) rowClass += ' has-exact-conflict';
+      else if (hasDayConflict) rowClass += ' has-day-conflict';
+      if (calendarDay.isHoliday) rowClass += ' is-holiday';
+      if (calendarDay.isGeneral) rowClass += ' is-general-exam-day';
+
+      row.className = rowClass;
+
+      // ستون اول: روز و تاریخ
+      const colDate = document.createElement('div');
+      colDate.className = 'exam-day-date-col';
+      colDate.innerHTML = `
+        <div class="exam-day-title">
+          <span>${calendarDay.dayName}</span>
+          <span>${toPersianDigits(calendarDay.title)}</span>
+        </div>
+        <div class="exam-day-meta-tag">${calendarDay.note}</div>
+      `;
+
+      // ستون دوم: دروس امتحانی یا وضعیت فرجه
+      const colItems = document.createElement('div');
+      colItems.className = 'exam-day-items-col';
+
+      if (matchingExams.length === 0) {
+        if (calendarDay.isHoliday) {
+          colItems.innerHTML = `<span class="no-exam-pill" style="color:var(--holiday-text);">🔴 تعطیل رسمی — یک روز استراحت با چاشنی اضطراب امتحان بعدی</span>`;
+        } else if (calendarDay.isGeneral) {
+          colItems.innerHTML = `<span class="no-exam-pill" style="color:var(--general-exam-text);">🔵 امتحانات دروس عمومی دانشگاه (تست زدن بر مبنای حس ششم و الهامات غیبی)</span>`;
+        } else {
+          colItems.innerHTML = `<span class="no-exam-pill">🌱 فرجه مطالعه (خوابیدن تا عصر، سریال دیدن تا شب و عذاب وجدان در ساعت ۳ بامداد)</span>`;
+        }
+      } else {
+        matchingExams.forEach(course => {
+          const chip = document.createElement('div');
+          chip.className = `exam-row-chip ${hasExactConflict ? 'conflict-item' : ''}`;
+          chip.innerHTML = `
+            <span class="erc-name">${course.name}</span>
+            <span class="erc-time">ساعت ${toPersianDigits(course.exam.time)}</span>
+            <span class="erc-prof">(${formatInstructor(course.instructor)})</span>
+          `;
+          chip.addEventListener('click', () => openInspector(course));
+          colItems.appendChild(chip);
+        });
+
+        if (hasExactConflict) {
+          const tag = document.createElement('div');
+          tag.className = 'slot-conflict-tag';
+          tag.innerHTML = '🚨 [خطای بحرانی] هم‌زمانی ساعت امتحان — نیازمند قابلیت طی‌الارض!';
+          colItems.appendChild(tag);
+        } else if (hasDayConflict) {
+          const tag = document.createElement('div');
+          tag.className = 'slot-conflict-tag';
+          tag.style.backgroundColor = 'var(--warning-light)';
+          tag.style.color = 'var(--warning-text)';
+          tag.innerHTML = '⚠️ [هشدار فرسودگی] ۲ امتحان در یک روز — خدا به داد اعصابتون برسه';
+          colItems.appendChild(tag);
+        }
+      }
+
+      row.appendChild(colDate);
+      row.appendChild(colItems);
+      linearContainer.appendChild(row);
+    });
+  }
+
+  // --- مدیریت مودال دروس انتخابی و کپی کدهای گلستان ---
+  function openSelectedModal() {
+    const modal = document.getElementById('selectedCoursesModal');
+    if (!modal) return;
+    renderSelectedCoursesModal();
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSelectedModal() {
+    const modal = document.getElementById('selectedCoursesModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function renderSelectedCoursesModal() {
+    const tableBody = document.getElementById('selectedModalTableBody');
+    const codesBox = document.getElementById('golestanCodesBox');
+    const subtitle = document.getElementById('modalSubtitle');
+    const totalUnitsEl = document.getElementById('modalTotalUnits');
+    const conflictStatusEl = document.getElementById('modalConflictStatus');
+
+    const totalUnits = selectedCourses.reduce((sum, c) => sum + (c.units || 0), 0);
+    const { examConflicts, classConflicts } = analyzeConflicts();
+
+    if (subtitle) {
+      subtitle.textContent = `مجموع ${toPersianDigits(totalUnits)} واحد در ${toPersianDigits(selectedCourses.length)} درس انتخاب شده است`;
+    }
+    if (totalUnitsEl) {
+      totalUnitsEl.textContent = `${toPersianDigits(totalUnits)} واحد`;
+    }
+    if (conflictStatusEl) {
+      if (examConflicts.some(c => c.level === 'danger') || classConflicts.length > 0) {
+        conflictStatusEl.textContent = '🚨 دارای تداخل بحرانی';
+        conflictStatusEl.style.color = 'var(--danger-text)';
+        conflictStatusEl.style.borderColor = 'var(--danger-border)';
+      } else if (examConflicts.length > 0) {
+        conflictStatusEl.textContent = '⚠️ دارای هشدار تراکم امتحان';
+        conflictStatusEl.style.color = 'var(--warning-text)';
+        conflictStatusEl.style.borderColor = 'var(--warning-border)';
+      } else {
+        conflictStatusEl.textContent = '🛡️ بدون تداخل';
+        conflictStatusEl.style.color = 'var(--success-text)';
+        conflictStatusEl.style.borderColor = 'var(--border-color)';
+      }
+    }
+
+    // کدهای گلستان
+    if (codesBox) {
+      if (selectedCourses.length === 0) {
+        codesBox.textContent = '(هنوز درسی انتخاب نشده است — از فهرست کاتالوگ یا دکمه چینش خودکار درس اضافه کنید)';
+      } else {
+        const formattedCodes = selectedCourses.map(c => `${c.code}\t(${c.name})`).join('\n');
+        codesBox.textContent = formattedCodes;
+      }
+    }
+
+    // جدول دروس
+    if (tableBody) {
+      tableBody.innerHTML = '';
+      if (selectedCourses.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+              هنوز هیچ درسی به برنامه اضافه نشده است.
+            </td>
+          </tr>
+        `;
+      } else {
+        selectedCourses.forEach(course => {
+          const tr = document.createElement('tr');
+          const sessionSummary = course.sessions && course.sessions.length > 0
+            ? course.sessions.map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' | ')
+            : 'ندارد';
+          const examSummary = course.exam && course.exam.date
+            ? `${toPersianDigits(course.exam.date)} (${toPersianDigits(course.exam.time)})`
+            : 'نامشخص';
+
+          tr.innerHTML = `
+            <td><strong>${course.name}</strong></td>
+            <td><code style="font-weight:700; color:var(--primary);">${toPersianDigits(course.code)}</code></td>
+            <td>${toPersianDigits(course.units)} واحد</td>
+            <td>${formatInstructor(course.instructor)}</td>
+            <td>${sessionSummary}</td>
+            <td>${examSummary}</td>
+            <td>
+              <button class="modal-remove-btn" data-id="${course.id}" title="حذف این درس از برنامه">حذف ✕</button>
+            </td>
+          `;
+
+          const removeBtn = tr.querySelector('.modal-remove-btn');
+          if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+              removeCourse(course.id);
+              renderSelectedCoursesModal();
+            });
+          }
+
+          tableBody.appendChild(tr);
+        });
+      }
+    }
+  }
+
+  function copyGolestanCodes() {
+    if (selectedCourses.length === 0) {
+      showToast('هنوز درسی انتخاب نکرده‌اید که کد گلستانش تولید بشه!', 'info');
+      return;
+    }
+
+    const pureCodes = selectedCourses.map(c => c.code).join('\n');
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(pureCodes).then(() => {
+        onCopySuccess();
+      }).catch(() => {
+        fallbackCopy(pureCodes);
+      });
+    } else {
+      fallbackCopy(pureCodes);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      onCopySuccess();
+    } catch (e) {
+      showToast('خطا در کپی خودکار؛ لطفاً متن کادر را دستی کپی کنید.', 'danger');
+    }
+    document.body.removeChild(ta);
+  }
+
+  function onCopySuccess() {
+    const icon = document.getElementById('copyBtnIcon');
+    const text = document.getElementById('copyBtnText');
+    if (icon) icon.textContent = '✅';
+    if (text) text.textContent = 'کپی شد!';
+    setTimeout(() => {
+      if (icon) icon.textContent = '📋';
+      if (text) text.textContent = 'کپی یکجای کدهای گلستان';
+    }, 2000);
+
+    showToast('کدهای گلستان در کلیپ‌بورد کپی شد. حالا برید پای سامانه گلستان و سریع ثبت کنید تا ظرفیت‌ها پر نشده!', 'success');
+  }
+
+  // --- به‌روزرسانی تابلو راهنمای چارت ترم ۵ ---
+  function updateGuideBoard() {
+    const cards = document.querySelectorAll('.guide-course-card');
+    cards.forEach(card => {
+      const code = card.getAttribute('data-code');
+      const isPicked = selectedCourses.some(c => c.code.startsWith(code));
+      if (isPicked) {
+        card.classList.add('added');
+      } else {
+        card.classList.remove('added');
+      }
+    });
+  }
+
+  // --- به‌روزرسانی جامع رابط کاربری (UI) ---
+  function updateUI() {
+    const { examConflicts, classConflicts } = analyzeConflicts();
+
+    const maxUnits = isHonorStudent ? 24 : 20;
+    const totalUnits = selectedCourses.reduce((sum, c) => sum + (c.units || 0), 0);
+    const unitsEl = document.getElementById('headerTotalUnits');
+    if (unitsEl) {
+      unitsEl.textContent = `${toPersianDigits(totalUnits)} / ${toPersianDigits(maxUnits)} واحد`;
+      if (totalUnits > maxUnits) {
+        unitsEl.parentElement.classList.remove('accent');
+        unitsEl.parentElement.classList.add('conflict-err');
+      } else {
+        unitsEl.parentElement.classList.add('accent');
+        unitsEl.parentElement.classList.remove('conflict-err');
+      }
+    }
+
+    const honorBtn = document.getElementById('honorToggleBtn');
+    if (honorBtn) {
+      honorBtn.innerHTML = isHonorStudent
+        ? '<span>سقف مجاز: ۲۴ واحد (معدل الف)</span>'
+        : '<span>سقف مجاز: ۲۰ واحد (عادی)</span>';
+      honorBtn.className = isHonorStudent ? 'stat-chip accent' : 'stat-chip';
+    }
+
+    document.getElementById('headerTotalCourses').textContent = `${toPersianDigits(selectedCourses.length)} درس`;
+
+    const conflictChip = document.getElementById('headerConflictChip');
+    const dangerExams = examConflicts.filter(c => c.level === 'danger');
+    const warnExams = examConflicts.filter(c => c.level === 'warning');
+
+    if (dangerExams.length > 0) {
+      conflictChip.className = 'stat-chip conflict-err';
+      conflictChip.innerHTML = `<span>[خطای بحرانی]</span> <span>${toPersianDigits(dangerExams.length)} تداخل هم‌زمان ساعت امتحان</span>`;
+    } else if (warnExams.length > 0) {
+      conflictChip.className = 'stat-chip conflict-warn';
+      conflictChip.innerHTML = `<span>[هشدار تراکم]</span> <span>${toPersianDigits(warnExams.length)} تداخل روزانه امتحان</span>`;
+    } else {
+      conflictChip.className = 'stat-chip';
+      conflictChip.innerHTML = `<span>وضعیت تداخل:</span> <span>بدون تداخل</span>`;
+    }
+
+    // به‌روزرسانی نشانگر دکمه شناور دروس انتخابی
+    const floatingUnits = document.getElementById('floatingSelectedUnits');
+    const floatingCount = document.getElementById('floatingSelectedCount');
+    if (floatingUnits) floatingUnits.textContent = toPersianDigits(totalUnits);
+    if (floatingCount) floatingCount.textContent = toPersianDigits(selectedCourses.length);
+
+    // به‌روزرسانی مودال در صورت باز بودن
+    const selectedModal = document.getElementById('selectedCoursesModal');
+    if (selectedModal && selectedModal.style.display !== 'none') {
+      renderSelectedCoursesModal();
+    }
+
+    renderCatalog();
+    renderDailySchedule(classConflicts);
+    renderMatrixSchedule(classConflicts);
+    renderLinearExamSchedule(examConflicts);
+    updateGuideBoard();
+
+    if (activeInspectorCourse) {
+      renderInspector();
+    }
+  }
+
+  // --- مقداردهی اولیه رویدادها ---
+  function initEvents() {
+    const searchInput = document.getElementById('courseSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        currentSearch = e.target.value;
+        renderCatalog();
+      });
+    }
+
+    const filterChips = document.querySelectorAll('.filter-chip');
+    filterChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        filterChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeFilter = chip.getAttribute('data-filter');
+        renderCatalog();
+      });
+    });
+
+    // دکمه انتخاب خودکار دروس ترم ۵
+    const autoPickBtn = document.getElementById('autoPickTerm5Btn');
+    if (autoPickBtn) {
+      autoPickBtn.addEventListener('click', autoPickTerm5);
+    }
+
+    // دکمه سوئیچ وضعیت معدل الف (سقف ۲۴ یا ۲۰ واحد)
+    const honorBtn = document.getElementById('honorToggleBtn');
+    if (honorBtn) {
+      honorBtn.addEventListener('click', () => {
+        isHonorStudent = !isHonorStudent;
+        updateUI();
+        showToast(
+          isHonorStudent
+            ? 'سقف ۲۴ واحد فعال شد. رسماً تصمیم گرفتید خواب و سلامت روان رو تا اسفند تعطیل کنید.'
+            : 'سقف ۲۰ واحد: برگشتید به مدار عقلانیت و بقا؛ حداقل فرصت می‌کنید نفس بکشید.',
+          'info'
+        );
+      });
+    }
+
+    // کلیک روی کارت‌های تابلو راهنما
+    const guideCards = document.querySelectorAll('.guide-course-card');
+    guideCards.forEach(card => {
+      card.addEventListener('click', () => {
+        const code = card.getAttribute('data-code');
+        const course = allCourses.find(c => c.code.startsWith(code) && c.isEntry403Allowed);
+        if (course) {
+          openInspector(course);
+        }
+      });
+    });
+
+    // دکمه جمع‌کردن / بازکردن چارت راهنمای ترم ۵
+    const toggleGuideBtn = document.getElementById('toggleGuideBoardBtn');
+    const guideBoardEl = document.querySelector('.guide-board');
+    const toggleGuideIcon = document.getElementById('toggleGuideIcon');
+    const toggleGuideText = document.getElementById('toggleGuideText');
+
+    // بازیابی وضعیت قبلی چارت
+    const isGuideCollapsed = localStorage.getItem('guide_board_collapsed') === 'true';
+    if (isGuideCollapsed && guideBoardEl) {
+      guideBoardEl.classList.add('is-collapsed');
+      if (toggleGuideIcon) toggleGuideIcon.textContent = '⌄';
+      if (toggleGuideText) toggleGuideText.textContent = 'مشاهده چارت ترم ۵';
+    }
+
+    if (toggleGuideBtn && guideBoardEl) {
+      toggleGuideBtn.addEventListener('click', () => {
+        const collapsed = guideBoardEl.classList.toggle('is-collapsed');
+        localStorage.setItem('guide_board_collapsed', collapsed ? 'true' : 'false');
+        if (toggleGuideIcon) toggleGuideIcon.textContent = collapsed ? '⌄' : '⌃';
+        if (toggleGuideText) toggleGuideText.textContent = collapsed ? 'مشاهده چارت ترم ۵' : 'جمع‌کردن چارت';
+      });
+    }
+
+    // فیلتر تقویم امتحانات (فقط روزهای امتحان من / کل تقویم بهمن)
+    const examFilterMyBtn = document.getElementById('examFilterMyExams');
+    const examFilterAllBtn = document.getElementById('examFilterAllDays');
+    if (examFilterMyBtn && examFilterAllBtn) {
+      examFilterMyBtn.addEventListener('click', () => {
+        examCalendarFilter = 'myExams';
+        renderLinearExamSchedule(analyzeConflicts().examConflicts);
+      });
+      examFilterAllBtn.addEventListener('click', () => {
+        examCalendarFilter = 'all';
+        renderLinearExamSchedule(analyzeConflicts().examConflicts);
+      });
+    }
+
+    // دکمه شناور دروس انتخابی و بازکردن مودال کدهای گلستان
+    const floatingBtn = document.getElementById('floatingSelectedBtn');
+    if (floatingBtn) {
+      floatingBtn.addEventListener('click', openSelectedModal);
+    }
+
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const closeModalFooterBtn = document.getElementById('closeModalFooterBtn');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeSelectedModal);
+    if (closeModalFooterBtn) closeModalFooterBtn.addEventListener('click', closeSelectedModal);
+    if (modalBackdrop) modalBackdrop.addEventListener('click', closeSelectedModal);
+
+    const copyGolestanBtn = document.getElementById('copyGolestanBtn');
+    const golestanCodesBox = document.getElementById('golestanCodesBox');
+    if (copyGolestanBtn) copyGolestanBtn.addEventListener('click', copyGolestanCodes);
+    if (golestanCodesBox) golestanCodesBox.addEventListener('click', copyGolestanCodes);
+
+    const printModalBtn = document.getElementById('printModalBtn');
+    if (printModalBtn) {
+      printModalBtn.addEventListener('click', () => {
+        closeSelectedModal();
+        setTimeout(() => window.print(), 150);
+      });
+    }
+
+    // بستن مودال‌ها با کلید Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeSelectedModal();
+        closeInspector();
+      }
+    });
+
+    const toggleDaily = document.getElementById('toggleDailyView');
+    const toggleMatrix = document.getElementById('toggleMatrixView');
+    const dailyViewEl = document.getElementById('dailyScheduleFlow');
+    const matrixViewEl = document.getElementById('matrixScheduleView');
+
+    if (toggleDaily && toggleMatrix && dailyViewEl && matrixViewEl) {
+      toggleDaily.addEventListener('click', () => {
+        toggleDaily.classList.add('active');
+        toggleMatrix.classList.remove('active');
+        dailyViewEl.style.display = 'flex';
+        matrixViewEl.style.display = 'none';
+        currentViewMode = 'daily';
+      });
+
+      toggleMatrix.addEventListener('click', () => {
+        toggleMatrix.classList.add('active');
+        toggleDaily.classList.remove('active');
+        dailyViewEl.style.display = 'none';
+        matrixViewEl.style.display = 'block';
+        currentViewMode = 'matrix';
+      });
+    }
+
+    const closeInspBtn = document.getElementById('closeInspectorBtn');
+    if (closeInspBtn) {
+      closeInspBtn.addEventListener('click', closeInspector);
+    }
+
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        if (selectedCourses.length === 0) {
+          showToast('برنامه درسی در حال حاضر خالیه؛ نیازی به تظاهر به استرس و پاک‌سازی نیست.', 'info');
+          return;
+        }
+        if (confirm('مطمئنی می‌خوای کل برنامه رو پاک کنی؟ بعداً نگی نگفتی، ظرفیت‌ها روی هوا میره و دستت خالی می‌مونه!')) {
+          selectedCourses = [];
+          saveState();
+          updateUI();
+          closeInspector();
+          showToast('زدید کل برنامه رو با خاک یکسان کردید. تبریک، حالا برید پای سامانه گلستان اشک بریزید.', 'info');
+        }
+      });
+    }
+
+    const printBtn = document.getElementById('printBtn');
+    if (printBtn) {
+      printBtn.addEventListener('click', () => {
+        window.print();
+      });
+    }
+
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    if (themeToggleBtn) {
+      const sunSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+      const moonSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
+      const savedTheme = localStorage.getItem('app_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      themeToggleBtn.innerHTML = savedTheme === 'dark' ? sunSvg : moonSvg;
+
+      themeToggleBtn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('app_theme', next);
+        themeToggleBtn.innerHTML = next === 'dark' ? sunSvg : moonSvg;
+      });
+    }
+  }
+
+  // --- راه‌اندازی برنامه ---
+  document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    initEvents();
+    updateUI();
+  });
+
+})();
