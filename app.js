@@ -610,16 +610,35 @@
 
               const itemEl = document.createElement('div');
               itemEl.className = `slot-course-item ${hasClassConflict ? 'has-conflict' : ''}`;
-              itemEl.title = 'برای مشاهده جزییات کلیک کنید';
+              itemEl.title = 'برای مشاهده جزییات درس کلیک کنید';
 
               itemEl.innerHTML = `
-                <div class="slot-course-name">${course.name}</div>
+                <div class="slot-item-header">
+                  <span class="slot-course-name">${course.name}</span>
+                  <button class="slot-direct-del-btn" data-id="${course.id}" title="حذف مستقیم از برنامه">✕</button>
+                </div>
                 <div class="slot-course-instructor">${formatInstructor(course.instructor)}</div>
+                <div class="slot-item-actions">
+                  <button class="slot-switch-prof-btn" data-id="${course.id}" title="تغییر استاد و انتخاب گروه دیگر">🔄 تغییر استاد</button>
+                </div>
                 ${hasClassConflict ? '<div class="slot-conflict-tag">[تداخل زمانی — یا همزاد بیار یا التماس رفیق برای غیبت نخوردن]</div>' : ''}
               `;
 
               itemEl.addEventListener('click', (e) => {
-                e.stopPropagation();
+                const delBtn = e.target.closest('.slot-direct-del-btn');
+                if (delBtn) {
+                  e.stopPropagation();
+                  removeCourse(course.id);
+                  return;
+                }
+
+                const switchBtn = e.target.closest('.slot-switch-prof-btn');
+                if (switchBtn) {
+                  e.stopPropagation();
+                  openSwitchGroupModal(course);
+                  return;
+                }
+
                 openInspector(course);
               });
 
@@ -676,10 +695,34 @@
               const itemEl = document.createElement('div');
               itemEl.className = `slot-course-item ${dayClasses.length > 1 ? 'has-conflict' : ''}`;
               itemEl.innerHTML = `
-                <div class="slot-course-name">${course.name}</div>
+                <div class="slot-item-header">
+                  <span class="slot-course-name">${course.name}</span>
+                  <button class="slot-direct-del-btn" data-id="${course.id}" title="حذف مستقیم">✕</button>
+                </div>
                 <div class="slot-course-instructor">${formatInstructor(course.instructor)}</div>
+                <div class="slot-item-actions">
+                  <button class="slot-switch-prof-btn" data-id="${course.id}" title="تغییر استاد">🔄 تغییر استاد</button>
+                </div>
               `;
-              itemEl.addEventListener('click', () => openInspector(course));
+
+              itemEl.addEventListener('click', (e) => {
+                const delBtn = e.target.closest('.slot-direct-del-btn');
+                if (delBtn) {
+                  e.stopPropagation();
+                  removeCourse(course.id);
+                  return;
+                }
+
+                const switchBtn = e.target.closest('.slot-switch-prof-btn');
+                if (switchBtn) {
+                  e.stopPropagation();
+                  openSwitchGroupModal(course);
+                  return;
+                }
+
+                openInspector(course);
+              });
+
               cell.appendChild(itemEl);
             });
           }
@@ -827,6 +870,163 @@
       row.appendChild(colItems);
       linearContainer.appendChild(row);
     });
+  }
+
+  // --- مدیریت مودال تغییر استاد و گروه درسی ---
+  function openSwitchGroupModal(currentCourse) {
+    if (!currentCourse) return;
+    const modal = document.getElementById('switchGroupModal');
+    const titleEl = document.getElementById('switchGroupTitle');
+    const subtitleEl = document.getElementById('switchGroupSubtitle');
+    const bodyEl = document.getElementById('switchGroupBody');
+    if (!modal || !bodyEl) return;
+
+    if (titleEl) {
+      titleEl.innerHTML = `🔄 تغییر استاد: <strong>${currentCourse.name}</strong>`;
+    }
+    if (subtitleEl) {
+      subtitleEl.innerHTML = `گروه فعلی شما: <strong>${toPersianDigits(currentCourse.code)}</strong> (استاد ${formatInstructor(currentCourse.instructor)})`;
+    }
+
+    // استخراج دروس هم‌نام یا دارای کد پایه یکسان
+    const baseCode = (currentCourse.code || '').split('_')[0];
+    const normName = normalizeName(currentCourse.name);
+
+    const relatedGroups = allCourses.filter(c => {
+      const cBase = (c.code || '').split('_')[0];
+      return (baseCode && cBase === baseCode) || (normalizeName(c.name) === normName);
+    });
+
+    bodyEl.innerHTML = '';
+
+    if (relatedGroups.length <= 1) {
+      bodyEl.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🤷‍♂️</div>
+          <div style="font-weight: 800; font-size: 1rem; color: var(--text-primary); margin-bottom: 0.5rem;">
+            تنها یک گروه برای این درس در این ترم ارائه شده است.
+          </div>
+          <p style="font-size: 0.85rem; line-height: 1.6; max-width: 420px; margin: 0 auto;">
+            درس «${currentCourse.name}» فقط با کد گروه «${toPersianDigits(currentCourse.code)}» و استاد «${formatInstructor(currentCourse.instructor)}» در لیست رسمی آموزش وجود دارد و گروه موازی دیگری برای جابجایی تعریف نشده است.
+          </p>
+        </div>
+      `;
+    } else {
+      const listContainer = document.createElement('div');
+      listContainer.className = 'switch-group-list';
+
+      const otherCourses = selectedCourses.filter(sc => sc.id !== currentCourse.id);
+
+      relatedGroups.forEach(grp => {
+        const isCurrent = grp.id === currentCourse.id;
+        const card = document.createElement('div');
+        card.className = `switch-group-card ${isCurrent ? 'is-current' : ''}`;
+
+        // بررسی تداخل کلاسی این گروه با سایر دروس کاربر
+        const conflictsWith = [];
+        (grp.sessions || []).forEach(sA => {
+          otherCourses.forEach(oc => {
+            (oc.sessions || []).forEach(sB => {
+              if (sA.day === sB.day) {
+                const [startA, endA] = (sA.time || '').split('-');
+                const [startB, endB] = (sB.time || '').split('-');
+                if (timesOverlap(startA, endA, startB, endB)) {
+                  conflictsWith.push({ type: 'class', day: sA.day, other: oc.name });
+                }
+              }
+            });
+          });
+        });
+
+        // بررسی تداخل امتحانی
+        let examConflict = null;
+        if (grp.exam && grp.exam.date) {
+          otherCourses.forEach(oc => {
+            if (oc.exam && oc.exam.date === grp.exam.date) {
+              const [sA, eA] = (grp.exam.time || '').split('-');
+              const [sB, eB] = (oc.exam.time || '').split('-');
+              if (sA && sB && timesOverlap(sA, eA, sB, eB)) {
+                examConflict = { type: 'exact', other: oc.name, date: grp.exam.date, time: grp.exam.time };
+              } else if (!examConflict) {
+                examConflict = { type: 'sameday', other: oc.name, date: grp.exam.date };
+              }
+            }
+          });
+        }
+
+        const sessionSummary = grp.sessions && grp.sessions.length > 0
+          ? grp.sessions.map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' و ')
+          : 'ساعت کلاس اعلام نشده';
+
+        const examSummary = grp.exam && grp.exam.date
+          ? `${toPersianDigits(grp.exam.date)} (ساعت ${toPersianDigits(grp.exam.time)})`
+          : 'تاریخ امتحان اعلام نشده';
+
+        let conflictHtml = '';
+        if (isCurrent) {
+          conflictHtml = `<span style="color: var(--primary); font-weight: 700; font-size: 0.78rem;">📌 گروه انتخابی فعلی در برنامه شما</span>`;
+        } else if (conflictsWith.length > 0) {
+          conflictHtml = `<span style="color: var(--danger-text); font-weight: 700; font-size: 0.78rem;">⚠️ تداخل کلاسی روز ${conflictsWith[0].day} با درس «${conflictsWith[0].other}»</span>`;
+        } else if (examConflict && examConflict.type === 'exact') {
+          conflictHtml = `<span style="color: var(--danger-text); font-weight: 700; font-size: 0.78rem;">🚨 تداخل ساعت دقیق امتحان با «${examConflict.other}»</span>`;
+        } else if (examConflict && examConflict.type === 'sameday') {
+          conflictHtml = `<span style="color: var(--warning-text); font-weight: 600; font-size: 0.78rem;">⚠️ دو امتحان در یک روز همزمان با «${examConflict.other}»</span>`;
+        } else {
+          conflictHtml = `<span style="color: var(--success-text); font-weight: 700; font-size: 0.78rem;">🛡️ بدون تداخل زمانی با سایر دروس شما</span>`;
+        }
+
+        card.innerHTML = `
+          <div class="sgc-head">
+            <span class="sgc-prof">${formatInstructor(grp.instructor)}</span>
+            <span class="sgc-group">کد گروه: ${toPersianDigits(grp.code)}</span>
+          </div>
+          <div class="sgc-details">
+            <div>🕒 زمان برگزاری: <strong>${sessionSummary}</strong></div>
+            <div>📝 آزمون پایان‌ترم: <strong>${examSummary}</strong></div>
+            <div>👥 ظرفیت کلاس: <strong>${toPersianDigits(grp.capacity || 25)} نفر</strong></div>
+            <div style="margin-top: 0.25rem;">${conflictHtml}</div>
+          </div>
+          <div class="sgc-action">
+            ${isCurrent
+              ? '<span class="current-group-badge">✓ در برنامه هفتگی شماست</span>'
+              : `<button class="btn btn-primary btn-sm btn-select-switch" data-id="${grp.id}">
+                  🔄 انتقال به این استاد و گروه
+                </button>`
+            }
+          </div>
+        `;
+
+        const switchBtn = card.querySelector('.btn-select-switch');
+        if (switchBtn) {
+          switchBtn.addEventListener('click', () => {
+            const idx = selectedCourses.findIndex(sc => sc.id === currentCourse.id);
+            if (idx !== -1) {
+              selectedCourses[idx] = grp;
+            } else {
+              selectedCourses.push(grp);
+            }
+            saveState();
+            updateUI();
+            closeSwitchGroupModal();
+            showToast(`استاد درس «${grp.name}» با موفقیت به ${formatInstructor(grp.instructor)} (کد ${toPersianDigits(grp.code)}) تغییر یافت.`, 'success');
+          });
+        }
+
+        listContainer.appendChild(card);
+      });
+
+      bodyEl.appendChild(listContainer);
+    }
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSwitchGroupModal() {
+    const modal = document.getElementById('switchGroupModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
   }
 
   // --- مدیریت مودال دروس انتخابی و کپی کدهای گلستان ---
@@ -1087,9 +1287,15 @@
 
   // --- تشخیص هوشمند دستگاه و مدیریت نمای موبایل / دسکتاپ ---
   function isDeviceMobile() {
+    // قانون طلایی: روی صفحات کوچک (≤۹۰۰px) یا گوشی‌های موبایل، حالت موبایل اجباری است
+    // حتی اگر کاربر قبلاً دستی حالت دسکتاپ را ذخیره کرده باشد
+    const isSmallScreen = window.innerWidth <= 900;
+    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if (isSmallScreen || isMobileUA) return true;
+    // فقط در صفحات بزرگ (> ۹۰۰px) اجازه تغییر دستی حالت موجود است
     if (deviceMode === 'mobile') return true;
     if (deviceMode === 'desktop') return false;
-    return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    return false;
   }
 
   function applyDeviceMode() {
@@ -1368,6 +1574,11 @@
     if (closeModalFooterBtn) closeModalFooterBtn.addEventListener('click', closeSelectedModal);
     if (modalBackdrop) modalBackdrop.addEventListener('click', closeSelectedModal);
 
+    const closeSwitchGroupBtn = document.getElementById('closeSwitchGroupBtn');
+    const switchGroupBackdrop = document.getElementById('switchGroupBackdrop');
+    if (closeSwitchGroupBtn) closeSwitchGroupBtn.addEventListener('click', closeSwitchGroupModal);
+    if (switchGroupBackdrop) switchGroupBackdrop.addEventListener('click', closeSwitchGroupModal);
+
     const copyGolestanBtn = document.getElementById('copyGolestanBtn');
     const golestanCodesBox = document.getElementById('golestanCodesBox');
     if (copyGolestanBtn) copyGolestanBtn.addEventListener('click', copyGolestanCodes);
@@ -1385,6 +1596,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeSelectedModal();
+        closeSwitchGroupModal();
         closeInspector();
       }
     });
@@ -1463,7 +1675,13 @@
   // --- راه‌اندازی برنامه ---
   document.addEventListener('DOMContentLoaded', () => {
     const savedDevice = localStorage.getItem('device_view_mode');
-    if (savedDevice) deviceMode = savedDevice;
+    // اگر صفحه کوچک است و مقدار قبلی دسکتاپ ذخیره شده، پاکش کن
+    if (savedDevice === 'desktop' && window.innerWidth <= 900) {
+      localStorage.removeItem('device_view_mode');
+      deviceMode = 'auto';
+    } else if (savedDevice) {
+      deviceMode = savedDevice;
+    }
     loadState();
     initEvents();
     updateUI();

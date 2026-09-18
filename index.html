@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" data-active-tab="catalog">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,28 +20,27 @@
     <div class="header-container">
       <div class="logo-group">
         <div class="logo-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
             <path d="M3 9h18"/>
             <path d="M9 21V9"/>
           </svg>
         </div>
         <div class="logo-text">
-          <h1>سامانه پایش انتخاب واحد دانشکده اقتصاد</h1>
-          <p title="تلاشی سیستماتیک برای پیش‌بینی و مهار بحران‌های آموزشی">برنامه‌ریزی آموزشی و پایش تداخل امتحانات | نیم‌سال دوم ۱۴۰۳-۱۴۰۴ (بهمن ۱۴۰۵)</p>
+          <h1>انتخاب واحد اقتصاد</h1>
+          <p class="desktop-only-sub" title="تلاشی سیستماتیک برای پیش‌بینی و مهار بحران‌های آموزشی">برنامه‌ریزی آموزشی و پایش امتحانات | نیم‌سال دوم ۱۴۰۳-۱۴۰۴</p>
         </div>
       </div>
 
       <div class="header-stats">
-        <div class="stat-chip accent" id="chipUnits" title="مجموع واحدهای اخذ شده؛ مراقب ظرفیت مغزی خود باشید">
-          <span>📚 مجموع واحدها:</span>
-          <strong id="headerTotalUnits">۰ / ۲۴ واحد</strong>
+        <div class="stat-chip accent" id="chipUnits" title="مجموع واحدهای اخذ شده">
+          <span>📚 <strong id="headerTotalUnits">۰ / ۲۴</strong> <span class="unit-label-desktop">واحد</span></span>
         </div>
-        <button id="honorToggleBtn" class="stat-chip" style="cursor: pointer; background-color: var(--bg-surface);" title="سقف ۲۴ واحد — برای کسانی که فکر می‌کنن معدل الف بودن قراره توی اپلای یا بازار کار براشون معجزه کنه">
-          <span>🌟 سقف: ۲۴ واحد (معدل الف)</span>
+        <button id="honorToggleBtn" class="stat-chip desktop-only-stat" style="cursor: pointer; background-color: var(--bg-surface);" title="سقف ۲۴ یا ۲۰ واحد">
+          <span id="honorBadgeText">🌟 سقف: ۲۴ واحد</span>
         </button>
-        <div class="stat-chip" id="chipCourses">
-          <span>📑 تعداد درس:</span>
+        <div class="stat-chip desktop-only-stat" id="chipCourses">
+          <span>📑</span>
           <strong id="headerTotalCourses">۰ درس</strong>
         </div>
         <div class="stat-chip" id="headerConflictChip">
@@ -51,17 +50,17 @@
       </div>
 
       <div class="header-actions">
-        <button id="deviceModeToggleBtn" class="btn btn-outline" title="تغییر حالت نمایش بین موبایل و دسکتاپ">
+        <button id="deviceModeToggleBtn" class="btn btn-outline btn-sm desktop-only-btn" title="تغییر حالت نمایش بین موبایل و دسکتاپ">
           <span id="deviceModeIcon">📱</span> <span id="deviceModeText">حالت موبایل</span>
         </button>
         <button id="themeToggleBtn" class="btn btn-outline btn-icon-only" title="تغییر حالت شب و روز">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <button id="printBtn" class="btn btn-outline" title="چاپ برگه برنامه؛ برای چسباندن روی دیوار و تماشای لحظه‌به‌لحظه فروپاشی اهداف ترم">
-          <span>🖨️ چاپ برنامه</span>
+        <button id="printBtn" class="btn btn-outline btn-sm desktop-only-btn" title="چاپ برگه برنامه">
+          <span>🖨️ چاپ</span>
         </button>
-        <button id="resetBtn" class="btn btn-outline" title="حذف کل برنامه؛ بزن روش تا ببینی چطور ظرفیت‌ها توی ۳ ثانیه پودر می‌شن">
-          <span>🔄 انصراف و پاک‌سازی</span>
+        <button id="resetBtn" class="btn btn-outline btn-icon-only-mobile" title="حذف کل برنامه">
+          <span>🔄</span> <span class="desktop-only-text">انصراف</span>
         </button>
       </div>
     </div>
@@ -354,6 +353,23 @@
           <button id="printModalBtn" class="btn btn-outline btn-sm">🖨️ چاپ این برنامه</button>
           <button id="closeModalFooterBtn" class="btn btn-primary btn-sm">بستن پنجره</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- مودال اختصاصی تغییر استاد و گروه درسی -->
+  <div id="switchGroupModal" class="app-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="switchGroupTitle">
+    <div class="modal-backdrop" id="switchGroupBackdrop"></div>
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 id="switchGroupTitle">🔄 تغییر استاد و گروه درسی</h3>
+          <span class="modal-subtitle" id="switchGroupSubtitle">مشاهده اساتید و ساعت‌های جایگزین این درس</span>
+        </div>
+        <button id="closeSwitchGroupBtn" class="modal-close-btn" title="بستن پنجره">✕</button>
+      </div>
+      <div class="modal-body" id="switchGroupBody">
+        <!-- با جاوااسکریپت پر می‌شود -->
       </div>
     </div>
   </div>

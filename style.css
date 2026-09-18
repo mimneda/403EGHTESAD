@@ -1030,6 +1030,148 @@ body {
   width: fit-content;
 }
 
+.slot-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.slot-direct-del-btn {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: var(--danger);
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.slot-direct-del-btn:hover {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+  transform: scale(1.15);
+}
+
+.slot-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.slot-switch-prof-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: all var(--transition-fast);
+}
+
+.slot-switch-prof-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* کارت‌های تغییر گروه و استاد (Switch Group Modal) */
+.modal-card-sm {
+  max-width: 580px !important;
+}
+
+.switch-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.switch-group-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.switch-group-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.switch-group-card.is-current {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.sgc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sgc-prof {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.sgc-group {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--bg-card);
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color);
+}
+
+.sgc-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.sgc-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.current-group-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 /* Weekly Matrix Table Mode */
 .matrix-schedule-view {
   overflow-x: auto;
@@ -1765,6 +1907,7 @@ body {
   font-weight: 700;
   border: 1px solid var(--border-color);
   background: var(--bg-card);
+}
 /* ==========================================================================
    دکمه‌های اختصاصی کپی کد هر درس (Single-Course Golestan Copy)
    ========================================================================== */
@@ -2020,11 +2163,194 @@ body {
 }
 
 /* ==========================================================================
-   طراحی اختصاصی برای نسخه موبایل (Dedicated Mobile Mode)
-   وقتی کاربر با موبایل وارد شود یا دکمه تغییر حالت فشرده شود
+   طراحی اختصاصی برای نسخه موبایل (Dedicated Mobile Web-App Experience)
+   فعال بر روی تمام صفحات زیر ۹۰۰ پیکسل یا با انتخاب حالت موبایل
    ========================================================================== */
+
+/* 1. سربرگ فوق‌العاده باریک و جمع‌وجور (ارتفاع حدود ۴۸ پیکسل) */
+@media (max-width: 900px) {
+  .app-header {
+    padding: 0.4rem 0.8rem !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 95 !important;
+  }
+
+  .header-container {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 0.4rem !important;
+  }
+
+  .logo-icon {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .logo-text h1 {
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+  }
+
+  .desktop-only-sub,
+  .desktop-only-stat,
+  .desktop-only-btn,
+  .unit-label-desktop,
+  .desktop-only-text {
+    display: none !important;
+  }
+
+  .header-stats {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .stat-chip {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.74rem !important;
+    white-space: nowrap !important;
+  }
+
+  .header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+  }
+
+  .header-actions .btn {
+    padding: 0.3rem 0.45rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* 2. نوار ناوبری پایین صفحه (Mobile Bottom Nav Dock) */
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+
+  .floating-selected-container {
+    display: none !important;
+  }
+
+  .bottom-inspector {
+    bottom: 58px !important;
+  }
+
+  .site-footer {
+    padding-bottom: 5.5rem !important;
+  }
+
+  /* 3. رفع قطعی مشکل تداخل و اسکرول کاتالوگ (Fix Catalog Overlap) */
+  .main-wrapper {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    padding: 0.75rem 0.85rem 5.5rem !important;
+    gap: 0 !important;
+  }
+
+  .sidebar-catalog {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    border-left: none !important;
+    box-shadow: none !important;
+  }
+
+  .course-list {
+    overflow-y: visible !important;
+    max-height: none !important;
+  }
+
+  .selected-courses-table-wrap {
+    display: none !important;
+  }
+
+  .selected-courses-cards-mobile {
+    display: flex !important;
+  }
+
+  .modal-card {
+    max-height: 94vh !important;
+    margin: 0.5rem !important;
+  }
+
+  .slots-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .time-slot-box {
+    min-height: auto !important;
+    border-left: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  .exam-day-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.6rem !important;
+  }
+
+  .exam-day-date-col {
+    width: 100% !important;
+    border-left: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 0.4rem !important;
+  }
+
+  /* 4. تفکیک قطعی بخش‌ها در موبایل (Section Tabbing) */
+  .guide-board-container { display: none !important; }
+  .sidebar-catalog { display: none !important; }
+  .schedule-section { display: none !important; }
+  .exam-section { display: none !important; }
+
+  html:not([data-active-tab]) .sidebar-catalog,
+  html[data-active-tab="catalog"] .sidebar-catalog {
+    display: flex !important;
+  }
+  html[data-active-tab="schedule"] .schedule-section {
+    display: block !important;
+  }
+  html[data-active-tab="exams"] .exam-section {
+    display: block !important;
+  }
+  html[data-active-tab="guide"] .guide-board-container {
+    display: block !important;
+    padding: 0.75rem 0.85rem 6rem !important;
+  }
+  html[data-active-tab="guide"] .main-wrapper {
+    display: none !important;
+  }
+}
+
+/* اعمال صفت دستی data-device="mobile" در هر سایزی */
+[data-device="mobile"] .app-header {
+  padding: 0.4rem 0.8rem !important;
+}
+
+[data-device="mobile"] .header-container {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  gap: 0.4rem !important;
+}
+
+[data-device="mobile"] .desktop-only-sub,
+[data-device="mobile"] .desktop-only-stat,
+[data-device="mobile"] .desktop-only-btn,
+[data-device="mobile"] .unit-label-desktop,
+[data-device="mobile"] .desktop-only-text {
+  display: none !important;
+}
+
 [data-device="mobile"] .mobile-bottom-nav {
-  display: flex;
+  display: flex !important;
 }
 
 [data-device="mobile"] .floating-selected-container {
@@ -2032,11 +2358,11 @@ body {
 }
 
 [data-device="mobile"] .site-footer {
-  padding-bottom: 6rem;
+  padding-bottom: 5.5rem !important;
 }
 
 [data-device="mobile"] .bottom-inspector {
-  bottom: 62px;
+  bottom: 58px !important;
 }
 
 [data-device="mobile"] .selected-courses-table-wrap {
@@ -2047,116 +2373,91 @@ body {
   display: flex !important;
 }
 
-/* مخفی‌سازی سکشن‌های غیرفعال در موبایل جهت جلوگیری از اسکرول بی‌پایان */
-[data-device="mobile"] .guide-board-container {
-  display: none;
+[data-device="mobile"] .main-wrapper {
+  display: block !important;
+  grid-template-columns: 1fr !important;
+  padding: 0.75rem 0.85rem 5.5rem !important;
+  gap: 0 !important;
 }
 
 [data-device="mobile"] .sidebar-catalog {
-  display: none;
-  width: 100%;
-  max-width: 100%;
-  border-left: none;
-  height: auto;
-  position: static;
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+  border-left: none !important;
+  box-shadow: none !important;
+  display: none !important;
 }
 
-[data-device="mobile"] .schedule-section {
-  display: none;
+[data-device="mobile"] .course-list {
+  overflow-y: visible !important;
+  max-height: none !important;
 }
 
-[data-device="mobile"] .exam-section {
-  display: none;
-}
+[data-device="mobile"] .guide-board-container { display: none !important; }
+[data-device="mobile"] .schedule-section { display: none !important; }
+[data-device="mobile"] .exam-section { display: none !important; }
 
-/* نمایش سکشن فعال تب انتخاب شده */
+[data-device="mobile"]:not([data-active-tab]) .sidebar-catalog,
 [data-device="mobile"][data-active-tab="catalog"] .sidebar-catalog {
   display: flex !important;
 }
-
 [data-device="mobile"][data-active-tab="schedule"] .schedule-section {
   display: block !important;
 }
-
 [data-device="mobile"][data-active-tab="exams"] .exam-section {
   display: block !important;
 }
-
 [data-device="mobile"][data-active-tab="guide"] .guide-board-container {
   display: block !important;
+  padding: 0.75rem 0.85rem 6rem !important;
+}
+[data-device="mobile"][data-active-tab="guide"] .main-wrapper {
+  display: none !important;
 }
 
-/* چیدمان کلی موبایل */
-[data-device="mobile"] .main-wrapper {
-  grid-template-columns: 1fr;
-  padding: 0 0.85rem;
-}
-
-[data-device="mobile"] .content-area {
-  padding-bottom: 2rem;
-}
-
-[data-device="mobile"] .header-container {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.75rem;
-}
-
-[data-device="mobile"] .header-stats {
-  justify-content: space-between;
-}
-
-[data-device="mobile"] .stat-chip {
-  flex: 1 1 calc(50% - 0.4rem);
-  justify-content: center;
-  text-align: center;
-  font-size: 0.76rem;
-}
-
-[data-device="mobile"] .header-actions {
-  justify-content: space-between;
-  width: 100%;
-}
-
-[data-device="mobile"] .header-actions .btn {
-  flex: 1;
-  font-size: 0.75rem;
-  padding: 0.4rem 0.5rem;
-}
-
-[data-device="mobile"] .slots-grid {
-  grid-template-columns: 1fr !important;
-}
-
-[data-device="mobile"] .time-slot-box {
-  min-height: auto;
-  border-left: none;
-  border-bottom: 1px solid var(--border-color);
-}
-
-[data-device="mobile"] .exam-day-row {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.6rem;
-}
-
-[data-device="mobile"] .exam-day-date-col {
-  width: 100%;
-  border-left: none;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 0.4rem;
-}
-
-[data-device="mobile"] .modal-card {
-  max-height: 94vh;
-  margin: 0.5rem;
-}
-
-/* Media Query استاندارد کمکی برای رزولوشن‌های زیر 768px */
-@media (max-width: 768px) {
-  .floating-selected-container {
-    bottom: 4.8rem;
-    left: 0.85rem;
+/* وقتی دستی دسکتاپ انتخاب شود — فقط در صفحات بزرگتر از ۹۰۰ پیکسل */
+@media (min-width: 901px) {
+  [data-device="desktop"] .mobile-bottom-nav {
+    display: none !important;
+  }
+  [data-device="desktop"] .floating-selected-container {
+    display: flex !important;
+  }
+  [data-device="desktop"] .desktop-only-sub,
+  [data-device="desktop"] .desktop-only-stat,
+  [data-device="desktop"] .desktop-only-btn,
+  [data-device="desktop"] .unit-label-desktop {
+    display: inline-flex !important;
+  }
+  [data-device="desktop"] .main-wrapper {
+    display: grid !important;
+    grid-template-columns: 390px 1fr !important;
+    gap: 1.5rem !important;
+  }
+  [data-device="desktop"] .sidebar-catalog {
+    display: flex !important;
+    position: sticky !important;
+    max-height: calc(100vh - 110px) !important;
+    overflow: hidden !important;
+  }
+  [data-device="desktop"] .schedule-section {
+    display: block !important;
+  }
+  [data-device="desktop"] .exam-section {
+    display: block !important;
+  }
+  [data-device="desktop"] .guide-board-container {
+    display: block !important;
+  }
+  [data-device="desktop"] .selected-courses-table-wrap {
+    display: block !important;
+  }
+  [data-device="desktop"] .selected-courses-cards-mobile {
+    display: none !important;
   }
 }
 
