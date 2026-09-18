@@ -2419,46 +2419,44 @@ body {
   display: none !important;
 }
 
-/* وقتی دستی دسکتاپ انتخاب شود — فقط در صفحات بزرگتر از ۹۰۰ پیکسل */
-@media (min-width: 901px) {
-  [data-device="desktop"] .mobile-bottom-nav {
-    display: none !important;
-  }
-  [data-device="desktop"] .floating-selected-container {
-    display: flex !important;
-  }
-  [data-device="desktop"] .desktop-only-sub,
-  [data-device="desktop"] .desktop-only-stat,
-  [data-device="desktop"] .desktop-only-btn,
-  [data-device="desktop"] .unit-label-desktop {
-    display: inline-flex !important;
-  }
-  [data-device="desktop"] .main-wrapper {
-    display: grid !important;
-    grid-template-columns: 390px 1fr !important;
-    gap: 1.5rem !important;
-  }
-  [data-device="desktop"] .sidebar-catalog {
-    display: flex !important;
-    position: sticky !important;
-    max-height: calc(100vh - 110px) !important;
-    overflow: hidden !important;
-  }
-  [data-device="desktop"] .schedule-section {
-    display: block !important;
-  }
-  [data-device="desktop"] .exam-section {
-    display: block !important;
-  }
-  [data-device="desktop"] .guide-board-container {
-    display: block !important;
-  }
-  [data-device="desktop"] .selected-courses-table-wrap {
-    display: block !important;
-  }
-  [data-device="desktop"] .selected-courses-cards-mobile {
-    display: none !important;
-  }
+/* وقتی دستگاه دسکتاپ تشخیص داده شود (از روی User Agent) — در هر سایزی */
+[data-device="desktop"] .mobile-bottom-nav {
+  display: none !important;
+}
+[data-device="desktop"] .floating-selected-container {
+  display: flex !important;
+}
+[data-device="desktop"] .desktop-only-sub,
+[data-device="desktop"] .desktop-only-stat,
+[data-device="desktop"] .desktop-only-btn,
+[data-device="desktop"] .unit-label-desktop {
+  display: inline-flex !important;
+}
+[data-device="desktop"] .main-wrapper {
+  display: grid !important;
+  grid-template-columns: 390px 1fr !important;
+  gap: 1.5rem !important;
+}
+[data-device="desktop"] .sidebar-catalog {
+  display: flex !important;
+  position: sticky !important;
+  max-height: calc(100vh - 110px) !important;
+  overflow: hidden !important;
+}
+[data-device="desktop"] .schedule-section {
+  display: block !important;
+}
+[data-device="desktop"] .exam-section {
+  display: block !important;
+}
+[data-device="desktop"] .guide-board-container {
+  display: block !important;
+}
+[data-device="desktop"] .selected-courses-table-wrap {
+  display: block !important;
+}
+[data-device="desktop"] .selected-courses-cards-mobile {
+  display: none !important;
 }
 
 /* Print Friendly Styles */

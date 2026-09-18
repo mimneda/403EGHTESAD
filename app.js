@@ -1287,15 +1287,14 @@
 
   // --- تشخیص هوشمند دستگاه و مدیریت نمای موبایل / دسکتاپ ---
   function isDeviceMobile() {
-    // قانون طلایی: روی صفحات کوچک (≤۹۰۰px) یا گوشی‌های موبایل، حالت موبایل اجباری است
-    // حتی اگر کاربر قبلاً دستی حالت دسکتاپ را ذخیره کرده باشد
-    const isSmallScreen = window.innerWidth <= 900;
-    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    if (isSmallScreen || isMobileUA) return true;
-    // فقط در صفحات بزرگ (> ۹۰۰px) اجازه تغییر دستی حالت موجود است
+    // اول: بررسی انتخاب دستی کاربر (دکمه سوئیچ حالت)
     if (deviceMode === 'mobile') return true;
     if (deviceMode === 'desktop') return false;
-    return false;
+    // حالت اتوماتیک: تشخیص از روی User Agent
+    // روی گوشی واقعی یا تبلت → موبایل
+    // روی مرورگر دسکتاپ (حتی با پنجره باریک) → دسکتاپ
+    const isMobileUA = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return isMobileUA;
   }
 
   function applyDeviceMode() {
@@ -1675,13 +1674,7 @@
   // --- راه‌اندازی برنامه ---
   document.addEventListener('DOMContentLoaded', () => {
     const savedDevice = localStorage.getItem('device_view_mode');
-    // اگر صفحه کوچک است و مقدار قبلی دسکتاپ ذخیره شده، پاکش کن
-    if (savedDevice === 'desktop' && window.innerWidth <= 900) {
-      localStorage.removeItem('device_view_mode');
-      deviceMode = 'auto';
-    } else if (savedDevice) {
-      deviceMode = savedDevice;
-    }
+    if (savedDevice) deviceMode = savedDevice;
     loadState();
     initEvents();
     updateUI();
