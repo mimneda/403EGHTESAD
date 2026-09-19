@@ -15,52 +15,55 @@
 </head>
 <body>
 
-  <!-- پنجره پیکربندی اولیه سامانه و تعیین سقف واحد — نمایش در اولین بازدید -->
+  <!-- پنجره تنظیمات اولیه سامانه (انتخاب دستگاه و سقف واحد) — نمایش در اولین بازدید -->
   <div id="deviceChoiceModal" class="app-modal" style="display:none; z-index: 9999;">
     <div class="modal-card device-choice-card">
       <div class="device-choice-header">
         <div class="device-choice-icon">🏛️</div>
-        <h2 class="device-choice-title">پیکربندی اولیه سامانه انتخاب واحد</h2>
+        <h2 class="device-choice-title">تنظیمات ورود به سامانه</h2>
         <p class="device-choice-desc">
-          دانشجوی گرامی، جهت تنظیم ساختار بهینه نمایش و اعمال سقف مجاز انتخاب واحد طبق مقررات آموزشی، لطفاً گزینه‌های زیر را تعیین فرمایید.
+          لطفاً نوع دستگاه و سقف مجاز انتخاب واحد خود را تعیین کنید:
         </p>
       </div>
 
-      <!-- بخش اول: تعیین وضعیت معدل الف و سقف واحد -->
+      <!-- بخش اول: نوع دستگاه ورودی -->
       <div class="setup-section">
         <div class="setup-section-label">
-          <span>📚 ۱. وضعیت تحصیلی و سقف مجاز واحد:</span>
+          <span>🖥️ ۱. انتخاب دستگاه:</span>
         </div>
         <div class="setup-toggle-group">
-          <button type="button" id="choiceHonor24" class="setup-option-btn active" data-honor="true" title="دانشجویان با معدل ۱۷ به بالا مجاز به اخذ تا ۲۴ واحد هستند">
-            <span class="setup-option-badge">پیش‌فرض</span>
-            <span class="setup-option-title">⭐ معدل الف (سقف ۲۴ واحد)</span>
-            <span class="setup-option-sub">معدل ترم قبل بالای ۱۷</span>
+          <button type="button" id="choiceDesktop" class="setup-option-btn active" data-device="desktop">
+            <span class="setup-option-title">💻 لپ‌تاپ / کامپیوتر</span>
           </button>
-          <button type="button" id="choiceHonor20" class="setup-option-btn" data-honor="false" title="سقف عادی انتخاب واحد طبق آیین‌نامه آموزشی دانشکده">
-            <span class="setup-option-title">دانشجوی عادی (سقف ۲۰ واحد)</span>
-            <span class="setup-option-sub">سقف مجاز استاندارد</span>
+          <button type="button" id="choiceMobile" class="setup-option-btn" data-device="mobile">
+            <span class="setup-option-title">📱 گوشی موبایل</span>
           </button>
         </div>
       </div>
 
-      <!-- بخش دوم: نوع دستگاه ورودی -->
+      <!-- بخش دوم: تعیین سقف واحد (پیش‌فرض ۲۴ واحد آزاد) -->
       <div class="setup-section">
         <div class="setup-section-label">
-          <span>🖥️ ۲. نوع دستگاه ورودی و ورود به سامانه:</span>
+          <span>📚 ۲. سقف انتخاب واحد:</span>
         </div>
-        <div class="device-choice-buttons">
-          <button type="button" id="choiceDesktop" class="btn btn-primary device-choice-btn">
-            💻 رایانه / لپ‌تاپ (پیشنهادی)
+        <div class="setup-toggle-group">
+          <button type="button" id="choiceHonor20" class="setup-option-btn" data-honor="false">
+            <span class="setup-option-title">سقف ۲۰ واحد</span>
           </button>
-          <button type="button" id="choiceMobile" class="btn btn-outline device-choice-btn">
-            📱 تلفن همراه
+          <button type="button" id="choiceHonor24" class="setup-option-btn active" data-honor="true">
+            <span class="setup-option-badge">پیش‌فرض</span>
+            <span class="setup-option-title">سقف ۲۴ واحد (آزاد)</span>
           </button>
         </div>
       </div>
 
+      <!-- دکمه تایید و ورود به سامانه -->
+      <button type="button" id="btnConfirmSetup" class="btn btn-primary setup-submit-btn">
+        ورود به سامانه
+      </button>
+
       <p class="device-choice-hint">
-        ℹ️ کلیه این تنظیمات در هر زمان از طریق سربرگ بالای صفحه قابل تغییر مجدد می‌باشند.
+        ℹ️ این تنظیمات بعداً هم از طریق سربرگ بالای صفحه قابل تغییر هستند.
       </p>
     </div>
   </div>

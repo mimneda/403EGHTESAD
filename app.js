@@ -1752,8 +1752,8 @@
     const honorBtn = document.getElementById('honorToggleBtn');
     if (honorBtn) {
       honorBtn.innerHTML = isHonorStudent
-        ? '<span>سقف مجاز: ۲۴ واحد (معدل الف)</span>'
-        : '<span>سقف مجاز: ۲۰ واحد (عادی)</span>';
+        ? '<span>سقف مجاز: ۲۴ واحد</span>'
+        : '<span>سقف مجاز: ۲۰ واحد</span>';
       honorBtn.className = isHonorStudent ? 'stat-chip accent' : 'stat-chip';
     }
 
@@ -1884,8 +1884,8 @@
         updateUI();
         showToast(
           isHonorStudent
-            ? 'سقف مجاز اخذ واحد به ۲۴ واحد (معدل الف) تغییر یافت.'
-            : 'سقف مجاز اخذ واحد به ۲۰ واحد (دانشجوی عادی) تغییر یافت.',
+            ? 'سقف مجاز انتخاب واحد به ۲۴ واحد تغییر یافت.'
+            : 'سقف مجاز انتخاب واحد به ۲۰ واحد تغییر یافت.',
           'info'
         );
       });
@@ -2270,16 +2270,46 @@
       }
       bootApp();
     } else {
-      // اولین بازدید — نمایش پنجره پیکربندی اولیه (دستگاه و وضعیت تحصیلی)
+      // اولین بازدید — نمایش پنجره تنظیمات اولیه (دستگاه اول، سقف واحد دوم)
       const modal = document.getElementById('deviceChoiceModal');
       if (modal) {
         modal.style.display = 'flex';
 
-        // پیش‌فرض: سقف ۲۴ واحد (معدل الف) فعال است
-        let selectedHonor = true;
+        // پیشنهاد هوشمند نوع دستگاه بر اساس سیستم کاربر
+        const isMobileUA = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        let selectedDevice = isMobileUA ? 'mobile' : 'desktop';
+        let selectedHonor = true; // پیش‌فرض: سقف ۲۴ واحد آزاد
+
+        const btnDesktop = document.getElementById('choiceDesktop');
+        const btnMobile = document.getElementById('choiceMobile');
         const btnHonor24 = document.getElementById('choiceHonor24');
         const btnHonor20 = document.getElementById('choiceHonor20');
+        const btnConfirm = document.getElementById('btnConfirmSetup');
 
+        // وضعیت اولیه انتخاب دستگاه
+        if (btnDesktop && btnMobile) {
+          if (selectedDevice === 'mobile') {
+            btnMobile.classList.add('active');
+            btnDesktop.classList.remove('active');
+          } else {
+            btnDesktop.classList.add('active');
+            btnMobile.classList.remove('active');
+          }
+
+          btnDesktop.addEventListener('click', () => {
+            selectedDevice = 'desktop';
+            btnDesktop.classList.add('active');
+            btnMobile.classList.remove('active');
+          });
+
+          btnMobile.addEventListener('click', () => {
+            selectedDevice = 'mobile';
+            btnMobile.classList.add('active');
+            btnDesktop.classList.remove('active');
+          });
+        }
+
+        // رویدادهای انتخاب سقف واحد (سقف ۲۰ یا ۲۴ واحد)
         if (btnHonor24 && btnHonor20) {
           btnHonor24.addEventListener('click', () => {
             selectedHonor = true;
@@ -2294,19 +2324,18 @@
           });
         }
 
-        function finalizeSetup(mode) {
-          deviceMode = mode;
+        function finalizeSetup() {
+          deviceMode = selectedDevice;
           isHonorStudent = selectedHonor;
-          localStorage.setItem('device_view_mode', mode);
+          localStorage.setItem('device_view_mode', selectedDevice);
           localStorage.setItem('is_honor_student', selectedHonor ? 'true' : 'false');
           modal.style.display = 'none';
           bootApp();
         }
 
-        const choiceDeskBtn = document.getElementById('choiceDesktop');
-        const choiceMobBtn = document.getElementById('choiceMobile');
-        if (choiceDeskBtn) choiceDeskBtn.addEventListener('click', () => finalizeSetup('desktop'));
-        if (choiceMobBtn) choiceMobBtn.addEventListener('click', () => finalizeSetup('mobile'));
+        if (btnConfirm) {
+          btnConfirm.addEventListener('click', finalizeSetup);
+        }
       } else {
         deviceMode = 'auto';
         bootApp();
