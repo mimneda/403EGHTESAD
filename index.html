@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="style.css?v=2.2">
+  <link rel="stylesheet" href="style.css?v=2.3">
 </head>
 <body>
 
@@ -119,6 +119,9 @@
         <button id="themeToggleBtn" class="btn btn-outline btn-icon-only" title="تغییر حالت شب و روز">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
+        <button id="btnOpenHelpModal" class="btn btn-outline btn-sm desktop-only-btn" title="راهنمای سریع سامانه">
+          <span>❓ راهنما</span>
+        </button>
         <button id="printBtn" class="btn btn-outline btn-sm desktop-only-btn" title="چاپ برگه برنامه">
           <span>🖨️ چاپ</span>
         </button>
@@ -129,44 +132,52 @@
     </div>
   </header>
 
-  <!-- بنر آنبوردینگ: راهنمای شروع کار برای کاربران تازه‌وارد -->
-  <aside id="onboardingBanner" class="onboarding-banner" style="display: none;" aria-label="راهنمای سریع استفاده از سامانه">
-    <div class="onboarding-inner">
-      <div class="onboarding-header">
-        <div class="onboarding-title-wrap">
-          <span class="onboarding-badge-icon">🚀</span>
-          <h3 class="onboarding-title">راهنمای شروع سریع سامانه در ۳ گام:</h3>
+  <!-- مودال راهنمای شروع سریع سامانه (نمایش یک‌بار پس از ورود به سامانه) -->
+  <div id="onboardingModal" class="app-modal" style="display: none; z-index: 99999;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card onboarding-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="device-choice-icon" style="font-size: 1.5rem; margin-bottom: 0;">🚀</div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">راهنمای سریع سامانه در ۳ گام</h3>
+            <span class="modal-subtitle">چطور در کمتر از ۳ دقیقه برنامه بهینه ترم خود را ببندید؟</span>
+          </div>
         </div>
-        <button id="closeOnboardingBtn" class="onboarding-close-btn" title="بستن راهنما">✕ متوجه شدم (بستن)</button>
+        <button id="closeOnboardingModalBtn" class="modal-close-btn" title="بستن">✕</button>
       </div>
-      <div class="onboarding-steps">
-        <div class="onboarding-step-card">
-          <div class="onboarding-step-num">۱</div>
-          <div class="onboarding-step-body">
-            <strong>📖 انتخاب دروس از لیست تخصصی</strong>
-            <p>از لیست دروس سمت راست، روی هر درس کلیک کنید و با دکمه «افزودن +» آن را به برنامه هفتگی بیاورید.</p>
+      <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+        <div class="onboarding-modal-steps">
+          <div class="onboarding-modal-step">
+            <div class="onboarding-step-num">۱</div>
+            <div class="onboarding-step-body">
+              <strong>📖 انتخاب دروس تخصصی دانشکده</strong>
+              <p>از کاتالوگ سمت راست، دروس ترم ۵ (چارت اصلی) و دروس اختیاری را متناسب با سقف ۲۰ یا ۲۴ واحد خود بردارید.</p>
+            </div>
+          </div>
+          <div class="onboarding-modal-step highlight">
+            <div class="onboarding-step-num">۲</div>
+            <div class="onboarding-step-body">
+              <strong>🏛️ دستیار هوشمند عمومی‌ها (شکار صندلی)</strong>
+              <p>سهمیه ۲ درس عمومی خود را از تب اختصاصی «عمومی‌ها» انتخاب کنید؛ دستیار هوشمند با توجه به سقف معارف، تفکیک جنسیتی و ساعات خالی شما بهترین‌ها را پیشنهاد می‌دهد.</p>
+            </div>
+          </div>
+          <div class="onboarding-modal-step">
+            <div class="onboarding-step-num">۳</div>
+            <div class="onboarding-step-body">
+              <strong>📋 پایش تداخلات و ثبت آسان در گلستان</strong>
+              <p>تداخلات زمانی و امتحانی به طور زنده پایش می‌شوند؛ سپس با زدن دکمه «دروس انتخابی»، کدهای گروه را یکجا کپی و در گلستان ثبت کنید.</p>
+            </div>
           </div>
         </div>
-        <div class="onboarding-step-card highlight">
-          <div class="onboarding-step-num">۲</div>
-          <div class="onboarding-step-body">
-            <strong>🏛️ شکار هوشمند دروس عمومی</strong>
-            <p>دکمه سبز «انتخاب دروس عمومی» را بزنید تا دستیار هوشمند با توجه به قوانین معارف و ظرفیت‌ها راهنماییتان کند.</p>
-            <button type="button" class="btn-onboarding-cta" id="btnOnboardingOpenGeneral">
-              <span>🚀 ورود مستقیم به دستیار دروس عمومی</span>
-            </button>
-          </div>
-        </div>
-        <div class="onboarding-step-card">
-          <div class="onboarding-step-num">۳</div>
-          <div class="onboarding-step-body">
-            <strong>📋 پایش تداخل و ثبت در گلستان</strong>
-            <p>برنامه هفتگی و امتحانات را چک کنید؛ سپس با زدن «دروس انتخابی من» کدهای گلستان را یکجا کپی کنید.</p>
-          </div>
-        </div>
+      </div>
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.5rem;">
+        <button type="button" id="btnDismissOnboarding" class="btn btn-primary btn-lg" style="width: 100%; font-weight: 800; font-size: 1rem; justify-content: center;">
+          فهمیدم، شروع کنیم! 🚀
+        </button>
       </div>
     </div>
-  </aside>
+  </div>
 
   <!-- تابلو راهنما: چارت پیشنهادی ترم پنجم (ورودی ۴۰۳) -->
   <div class="guide-board-container">
@@ -291,21 +302,6 @@
             <span>📖 کاتالوگ دروس ارائه شده</span>
           </h2>
           <span class="badge primary" id="catalogTotalCount">۵۶</span>
-        </div>
-
-        <!-- کارت ورودی ویژه دستیار عمومی در داخل کاتالوگ -->
-        <div class="catalog-general-cta-card" id="catalogGeneralCtaCard">
-          <div class="cg-cta-header">
-            <span class="cg-cta-badge">🎯 شکار صندلی‌های عمومی گلستان</span>
-            <span class="cg-cta-pill">معارف و خانواده</span>
-          </div>
-          <p class="cg-cta-text">
-            سهمیه ۲ درس عمومی این ترم (معارف + دانش خانواده) را با دستیار هوشمند و بر اساس تحلیل لحظه‌ای ظرفیت‌ها انتخاب کنید.
-          </p>
-          <button type="button" class="btn-catalog-general-cta" id="btnCatalogGeneralCta">
-            <span>🚀 ورود به دستیار انتخاب دروس عمومی</span>
-            <span class="cg-arrow">←</span>
-          </button>
         </div>
 
         <div class="search-box">
@@ -627,6 +623,11 @@
           🎯 تایید و ورود به شکار صندلی‌های عمومی
         </button>
       </div>
+      <div class="wizard-raw-mode-row" style="padding: 0.65rem 1.25rem 0.85rem; border-top: 1px dashed var(--border-color); display: flex; justify-content: center; background: rgba(0,0,0,0.03);">
+        <button type="button" id="btnSkipWizardRawMode" class="btn btn-outline btn-sm" style="font-size: 0.82rem; color: var(--text-secondary); border-color: var(--border-color);">
+          <span>👁️ نمی‌خوام پیشنهاد هوشمند ببینم، کل دروس عمومی رو خام نشونم بده</span>
+        </button>
+      </div>
     </div>
   </div>
   <!-- مودال استعلام و تایید پیش‌نیاز دروس اختیاری طبق بخشنامه آموزش -->
@@ -743,8 +744,8 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- اسکریپت‌ها -->
-  <script src="courses-data.js?v=2.2"></script>
-  <script src="general-courses-data.js?v=2.2"></script>
-  <script src="app.js?v=2.2"></script>
+  <script src="courses-data.js?v=2.3"></script>
+  <script src="general-courses-data.js?v=2.3"></script>
+  <script src="app.js?v=2.3"></script>
 </body>
 </html>

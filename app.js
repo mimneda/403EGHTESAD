@@ -58,6 +58,7 @@
   let studentGender = localStorage.getItem('student_gender') || 'خانم';
   let passedGeneralCourses = []; // شناسه‌های دروس گذرانده شده مانند 'andisheh1'
   let activeGeneralClusterFilter = 'all'; // فیلتر خوشه انتخابی: 'all', 'mabani', 'akhlagh', ...
+  let isGeneralRawMode = localStorage.getItem('general_raw_mode') === 'true'; // مشاهده دروس عمومی به صورت خام و بدون فیلتر هوشمند
 
   // --- توابع کمکی تبدیل اعداد و رشته‌ها ---
   function toPersianDigits(num) {
@@ -139,8 +140,17 @@
   }
 
   // --- بررسی همپوشانی بازه‌های زمانی ---
+  function toEnglishDigits(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+      .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  }
+
   function timeToMinutes(tStr) {
-    const parts = (tStr || '').split(':').map(Number);
+    if (!tStr) return 0;
+    const cleanStr = toEnglishDigits(String(tStr).trim());
+    const parts = cleanStr.split(':').map(Number);
     if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return 0;
     return parts[0] * 60 + parts[1];
   }
@@ -1462,7 +1472,7 @@
       switchMobileTab('general');
     } else {
       setDesktopView('general');
-      if (localStorage.getItem('general_wizard_completed') !== 'true') {
+      if (localStorage.getItem('general_wizard_completed') !== 'true' && localStorage.getItem('general_raw_mode') !== 'true') {
         openGeneralPassedModal(1);
       }
     }
@@ -1583,6 +1593,14 @@
               <span class="wizard-gender-sub">نمایش گروه‌های معارف ویژه دانشجویان آقا</span>
             </div>
           </div>
+          <div style="margin-top: 1.15rem; text-align: center; padding: 0.85rem 1rem; border-radius: var(--radius-md); background: rgba(6, 182, 212, 0.06); border: 1px dashed rgba(6, 182, 212, 0.35);">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
+              نمی‌خواهید مراحل دستیار را طی کنید؟
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" id="btnStep1SkipRaw" style="font-size: 0.8rem; border-radius: var(--radius-full);">
+              👁️ نمی‌خوام پیشنهاد هوشمند ببینم، کل دروس عمومی رو خام نشونم بده
+            </button>
+          </div>
         </div>
       `;
 
@@ -1601,6 +1619,11 @@
           gMale.classList.add('active');
           if (gFem) gFem.classList.remove('active');
         });
+      }
+
+      const btnStep1Skip = bodyEl.querySelector('#btnStep1SkipRaw');
+      if (btnStep1Skip) {
+        btnStep1Skip.addEventListener('click', enableGeneralRawMode);
       }
 
     } else if (step === 2) {
@@ -1718,9 +1741,11 @@
       localStorage.setItem('passed_general_courses', JSON.stringify(passedGeneralCourses));
       localStorage.setItem('student_gender', studentGender);
       localStorage.setItem('general_wizard_completed', 'true');
+      localStorage.removeItem('general_raw_mode');
     } catch (e) {
       console.warn('LocalStorage save error:', e);
     }
+    isGeneralRawMode = false;
 
     closeGeneralPassedModal();
     updateUI();
@@ -1733,6 +1758,27 @@
 
     renderDedicatedGeneralSection();
     showToast('دستیار شکار صندلی با موفقیت اجرا شد. فهرست دروس عمومی بر اساس سوابق شما آماده گردید!', 'success');
+  }
+
+  function enableGeneralRawMode() {
+    try {
+      localStorage.setItem('general_raw_mode', 'true');
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
+    isGeneralRawMode = true;
+
+    closeGeneralPassedModal();
+    updateUI();
+
+    if (isDeviceMobile()) {
+      switchMobileTab('general');
+    } else {
+      setDesktopView('general');
+    }
+
+    renderDedicatedGeneralSection();
+    showToast('دروس عمومی به صورت خام و بدون فیلتر نمایش داده می‌شوند.', 'info');
   }
 
   // --- رندر سکشن مستقل و اختصاصی دروس عمومی (موبایل و دسکتاپ) ---
@@ -1765,45 +1811,81 @@
         statusMsg = '📌 مجاز به اخذ ۱ درس معارف (+ در صورت نیاز درس دانش خانواده) در این ترم هستید.';
       }
 
-      ctrlPanel.innerHTML = `
-        <div class="general-panel-top">
-          <div class="general-gender-toggle-group">
-            <button type="button" class="general-gender-btn ${studentGender === 'خانم' ? 'active' : ''}" data-gender="خانم">
-              <span>👩‍🎓 خواهران</span>
-            </button>
-            <button type="button" class="general-gender-btn ${studentGender === 'آقا' ? 'active' : ''}" data-gender="آقا">
-              <span>👨‍🎓 برادران</span>
+      if (isGeneralRawMode) {
+        ctrlPanel.innerHTML = `
+          <div class="general-raw-mode-notice">
+            <div class="general-raw-mode-info">
+              <span style="font-size: 1.4rem;">👁️</span>
+              <div>
+                <div style="font-weight: 800;">حالت مشاهده خام تمام ۵۶ گروه درسی عمومی فعال است</div>
+                <div style="font-size: 0.76rem; color: var(--text-secondary); font-weight: 400; margin-top: 0.15rem;">
+                  تمام دروس و اساتید عمومی بدون اعمال فیلتر هوشمند در دسترس شما هستند.
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn-raw-mode-reactivate" id="btnReactivateWizard">
+              <span>⚡ فعال‌سازی دستیار هوشمند و شکار صندلی</span>
             </button>
           </div>
-          <button type="button" class="btn-open-passed-modal" id="btnDedicatedOpenPassedModal">
-            <span>⚙️ دستیار کارنامه (${toPersianDigits(passedCount * 2)} واحد پاس‌شده)</span>
-          </button>
-        </div>
-        <div class="general-status-badges" style="margin-top: 0.6rem;">
-          <span class="general-status-pill">
-            🏛️ عمومی‌های انتخابی این ترم: <strong>${toPersianDigits(currentGenerals.length)} از ۲ درس</strong>
-          </span>
-          <span class="general-status-pill ${currentGenerals.length >= 2 ? 'highlight' : ''}">
-            ${statusMsg}
-          </span>
-        </div>
-      `;
+          <div class="general-status-badges" style="margin-top: 0.6rem;">
+            <span class="general-status-pill">
+              🏛️ عمومی‌های انتخابی این ترم: <strong>${toPersianDigits(currentGenerals.length)} از ۲ درس</strong>
+            </span>
+            <span class="general-status-pill ${currentGenerals.length >= 2 ? 'highlight' : ''}">
+              ${statusMsg}
+            </span>
+          </div>
+        `;
 
-      ctrlPanel.querySelectorAll('.general-gender-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const g = btn.getAttribute('data-gender');
-          if (g && g !== studentGender) {
-            studentGender = g;
-            localStorage.setItem('student_gender', g);
-            renderDedicatedGeneralSection();
-            showToast(`فهرست دروس عمومی بر اساس دانشجویان ${g === 'خانم' ? 'خواهر' : 'برادر'} فیلتر شد.`, 'info');
-          }
+        const btnReactivate = ctrlPanel.querySelector('#btnReactivateWizard');
+        if (btnReactivate) {
+          btnReactivate.addEventListener('click', () => {
+            localStorage.removeItem('general_raw_mode');
+            isGeneralRawMode = false;
+            openGeneralPassedModal(1);
+          });
+        }
+      } else {
+        ctrlPanel.innerHTML = `
+          <div class="general-panel-top">
+            <div class="general-gender-toggle-group">
+              <button type="button" class="general-gender-btn ${studentGender === 'خانم' ? 'active' : ''}" data-gender="خانم">
+                <span>👩‍🎓 خواهران</span>
+              </button>
+              <button type="button" class="general-gender-btn ${studentGender === 'آقا' ? 'active' : ''}" data-gender="آقا">
+                <span>👨‍🎓 برادران</span>
+              </button>
+            </div>
+            <button type="button" class="btn-open-passed-modal" id="btnDedicatedOpenPassedModal">
+              <span>⚙️ دستیار کارنامه (${toPersianDigits(passedCount * 2)} واحد پاس‌شده)</span>
+            </button>
+          </div>
+          <div class="general-status-badges" style="margin-top: 0.6rem;">
+            <span class="general-status-pill">
+              🏛️ عمومی‌های انتخابی این ترم: <strong>${toPersianDigits(currentGenerals.length)} از ۲ درس</strong>
+            </span>
+            <span class="general-status-pill ${currentGenerals.length >= 2 ? 'highlight' : ''}">
+              ${statusMsg}
+            </span>
+          </div>
+        `;
+
+        ctrlPanel.querySelectorAll('.general-gender-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const g = btn.getAttribute('data-gender');
+            if (g && g !== studentGender) {
+              studentGender = g;
+              localStorage.setItem('student_gender', g);
+              renderDedicatedGeneralSection();
+              showToast(`فهرست دروس عمومی بر اساس دانشجویان ${g === 'خانم' ? 'خواهر' : 'برادر'} فیلتر شد.`, 'info');
+            }
+          });
         });
-      });
 
-      const openModalBtn = ctrlPanel.querySelector('#btnDedicatedOpenPassedModal');
-      if (openModalBtn) {
-        openModalBtn.addEventListener('click', () => openGeneralPassedModal(1));
+        const openModalBtn = ctrlPanel.querySelector('#btnDedicatedOpenPassedModal');
+        if (openModalBtn) {
+          openModalBtn.addEventListener('click', () => openGeneralPassedModal(1));
+        }
       }
     }
 
@@ -1850,6 +1932,10 @@
 
     const allGenerals = window.GENERAL_COURSES_DATA || [];
     const validGenerals = allGenerals.filter(c => {
+      if (isGeneralRawMode) {
+        if (activeDedicatedGeneralCluster !== 'all' && c.cluster !== activeDedicatedGeneralCluster) return false;
+        return true;
+      }
       // تطبیق جنسیت
       if (c.gender && c.gender !== studentGender && c.gender !== 'هر دو') return false;
       // عدم نمایش گرایش‌های مسدود (مگر اینکه کاربر فیلتر اختصاصی آن گرایش را انتخاب کرده باشد)
@@ -3131,6 +3217,9 @@
 
     if (tabId === 'general') {
       renderDedicatedGeneralSection();
+      if (localStorage.getItem('general_wizard_completed') !== 'true' && localStorage.getItem('general_raw_mode') !== 'true') {
+        openGeneralPassedModal(1);
+      }
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3382,6 +3471,11 @@
     const wizardFinishBtn = document.getElementById('wizardFinishBtn');
     if (wizardFinishBtn) {
       wizardFinishBtn.addEventListener('click', saveGeneralPassedAndFinish);
+    }
+
+    const btnSkipWizardRawMode = document.getElementById('btnSkipWizardRawMode');
+    if (btnSkipWizardRawMode) {
+      btnSkipWizardRawMode.addEventListener('click', enableGeneralRawMode);
     }
 
     // پرش سریع با کلیک روی استپ‌های ویزارد
@@ -3820,27 +3914,35 @@
     });
   }
 
+  function openOnboardingModal() {
+    const modal = document.getElementById('onboardingModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeOnboardingModal() {
+    const modal = document.getElementById('onboardingModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+    localStorage.setItem('onboarding_dismissed', 'true');
+  }
+
   function initOnboarding() {
-    const banner = document.getElementById('onboardingBanner');
-    const closeBtn = document.getElementById('closeOnboardingBtn');
-    if (!banner) return;
+    const dismissBtn = document.getElementById('btnDismissOnboarding');
+    const closeBtn = document.getElementById('closeOnboardingModalBtn');
+    const openBtn = document.getElementById('btnOpenHelpModal');
+
+    if (dismissBtn) dismissBtn.addEventListener('click', closeOnboardingModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeOnboardingModal);
+    if (openBtn) openBtn.addEventListener('click', openOnboardingModal);
 
     const isDismissed = localStorage.getItem('onboarding_dismissed');
-    if (isDismissed !== 'true') {
-      banner.style.display = 'block';
-    } else {
-      banner.style.display = 'none';
-    }
-
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        banner.style.opacity = '0';
-        banner.style.transform = 'translateY(-8px)';
-        setTimeout(() => {
-          banner.style.display = 'none';
-        }, 250);
-        localStorage.setItem('onboarding_dismissed', 'true');
-      });
+    const deviceChoiceModal = document.getElementById('deviceChoiceModal');
+    const isSetupOpen = deviceChoiceModal && deviceChoiceModal.style.display === 'flex';
+    if (isDismissed !== 'true' && !isSetupOpen) {
+      setTimeout(openOnboardingModal, 250);
     }
   }
 
@@ -3925,6 +4027,9 @@
           localStorage.setItem('is_honor_student', selectedHonor ? 'true' : 'false');
           modal.style.display = 'none';
           bootApp();
+          if (localStorage.getItem('onboarding_dismissed') !== 'true') {
+            setTimeout(openOnboardingModal, 200);
+          }
         }
 
         if (btnConfirm) {
