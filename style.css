@@ -3057,6 +3057,16 @@ body.inspector-open .floating-selected-container:not(.is-dragged) {
   html[data-active-tab="catalog"] .sidebar-catalog {
     display: flex !important;
   }
+  html[data-active-tab="general"] .general-courses-section {
+    display: block !important;
+  }
+  html[data-active-tab="general"] .sidebar-catalog,
+  html[data-active-tab="general"] .content-area,
+  html[data-active-tab="general"] .schedule-section,
+  html[data-active-tab="general"] .exam-section,
+  html[data-active-tab="general"] .guide-board-container {
+    display: none !important;
+  }
   html[data-active-tab="schedule"] .schedule-section {
     display: block !important;
   }
@@ -3198,6 +3208,16 @@ html[data-device="mobile"] body {
 [data-device="mobile"]:not([data-active-tab]) .sidebar-catalog,
 [data-device="mobile"][data-active-tab="catalog"] .sidebar-catalog {
   display: flex !important;
+}
+[data-device="mobile"][data-active-tab="general"] .general-courses-section {
+  display: block !important;
+}
+[data-device="mobile"][data-active-tab="general"] .sidebar-catalog,
+[data-device="mobile"][data-active-tab="general"] .content-area,
+[data-device="mobile"][data-active-tab="general"] .schedule-section,
+[data-device="mobile"][data-active-tab="general"] .exam-section,
+[data-device="mobile"][data-active-tab="general"] .guide-board-container {
+  display: none !important;
 }
 [data-device="mobile"][data-active-tab="schedule"] .schedule-section {
   display: block !important;
@@ -3851,6 +3871,318 @@ html[data-device="mobile"] body {
   font-size: 0.84rem;
   padding: 0.6rem 0.85rem;
   font-weight: 800;
+}
+
+/* ==========================================================================
+   بخش اختصاصی دروس عمومی و معارف اسلامی (شکار صندلی)
+   ========================================================================== */
+.btn-general-hunter-desktop {
+  background: linear-gradient(135deg, #059669, #10b981) !important;
+  border-color: #059669 !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25) !important;
+  transition: all 0.2s ease !important;
+  padding: 0.45rem 0.85rem !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.btn-general-hunter-desktop:hover {
+  background: linear-gradient(135deg, #047857, #059669) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35) !important;
+}
+
+/* حالت نمایش سکشن عمومی در دسکتاپ */
+html[data-desktop-view="general"] .sidebar-catalog,
+html[data-desktop-view="general"] .content-area,
+html[data-desktop-view="general"] .guide-board-container {
+  display: none !important;
+}
+
+html[data-desktop-view="general"] .main-wrapper {
+  grid-template-columns: 1fr !important;
+}
+
+html[data-desktop-view="general"] .general-courses-section {
+  display: block !important;
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+}
+
+.general-courses-section {
+  width: 100%;
+  padding: 0.5rem 0.5rem 4rem;
+  animation: fadeInStep 0.25s ease;
+}
+
+.general-section-hero {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 1.35rem;
+  margin-bottom: 1.15rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+  border-right: 4px solid #10b981;
+}
+
+.general-hero-info h2 {
+  font-size: 1.12rem;
+  font-weight: 900;
+  margin-bottom: 0.3rem;
+  color: var(--text-primary);
+}
+
+.general-hero-sub {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.general-hero-sub strong {
+  color: #10b981;
+}
+
+.general-hero-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.general-dedicated-filters-wrap {
+  overflow-x: auto;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.15rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.general-dedicated-filters {
+  display: flex;
+  gap: 0.5rem;
+  width: max-content;
+}
+
+.general-dedicated-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .general-courses-section {
+    padding: 0.6rem 0.25rem 6.5rem !important;
+  }
+  .general-section-hero {
+    padding: 0.95rem 1rem !important;
+  }
+  .general-hero-info h2 {
+    font-size: 1.02rem !important;
+  }
+  .general-dedicated-cards-container {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==========================================================================
+   طراحی ویزارد چندمرحله‌ای دستیار انتخاب واحد عمومی‌ها
+   ========================================================================== */
+.wizard-modal-card {
+  max-width: 720px !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 25px rgba(16, 185, 129, 0.12) !important;
+}
+
+.wizard-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+  background: rgba(16, 185, 129, 0.05);
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wizard-step-bullet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: all 0.2s ease;
+  min-width: 54px;
+}
+
+.wizard-step-bullet.active {
+  opacity: 1;
+}
+
+.wizard-step-bullet.completed {
+  opacity: 0.85;
+}
+
+.wizard-step-bullet .step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.78rem;
+  transition: all 0.2s ease;
+}
+
+.wizard-step-bullet.active .step-num {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+}
+
+.wizard-step-bullet.completed .step-num {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.wizard-step-bullet .step-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.wizard-step-bullet.active .step-label {
+  color: #10b981;
+  font-weight: 800;
+}
+
+.wizard-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-color);
+  margin: 0 0.35rem;
+  margin-bottom: 1.1rem;
+  min-width: 12px;
+}
+
+.wizard-step-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  padding: 0.35rem 0;
+  animation: fadeInStep 0.22s ease;
+}
+
+.wizard-step-guide {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  font-size: 0.83rem;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+
+.wizard-step-guide strong {
+  color: var(--primary);
+}
+
+.wizard-gender-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.wizard-gender-card {
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.wizard-gender-card:hover {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.03);
+}
+
+.wizard-gender-card.active {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.22);
+}
+
+.wizard-gender-icon {
+  font-size: 2.2rem;
+}
+
+.wizard-gender-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.wizard-gender-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.wizard-summary-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wizard-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.wizard-summary-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.wizard-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.95rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.wizard-step-counter {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-muted);
 }
 
 /* Print Friendly Styles */

@@ -1395,27 +1395,61 @@
     });
   }
 
-  // --- مدیریت مودال کارنامه و سوابق دروس عمومی (معارف) ---
-  function openGeneralPassedModal() {
+  // --- متغیرها و توابع اختصاصی دستیار عمومی و ویزارد شکار صندلی ---
+  let currentWizardStep = 1;
+  let activeDedicatedGeneralCluster = 'all';
+  let desktopViewMode = 'catalog'; // 'catalog' | 'general'
+
+  function getLockedClustersTitles() {
+    const clusters = window.GENERAL_CLUSTERS_CONFIG || [];
+    return clusters.filter(cl => isClusterLocked(cl.id)).map(cl => cl.title);
+  }
+
+  function getAllowedSemesterQuotaText() {
+    const currentGenerals = selectedCourses.filter(c => c.isGeneral);
+    const hasTheology = currentGenerals.some(c => c.cluster !== 'khanevadeh');
+    const hasKhanevadeh = currentGenerals.some(c => c.cluster === 'khanevadeh');
+
+    if (hasTheology && hasKhanevadeh) {
+      return 'سقف ۲ درس عمومی این ترم شما تکمیل شده است.';
+    }
+    if (hasTheology) {
+      return 'سهمیه ۱ درس معارف این ترم پر است؛ فقط می‌توانید درس «دانش خانواده» را اضافه کنید.';
+    }
+    if (hasKhanevadeh) {
+      return 'درس خانواده انتخاب شده است؛ می‌توانید ۱ درس از گرایش‌های مجاز معارف نیز اخذ نمایید.';
+    }
+    return 'مجاز به اخذ حداکثر ۱ درس معارف (+ در صورت نیاز درس دانش خانواده) در این ترم هستید.';
+  }
+
+  // --- تغییر نمای دسکتاپ (کاتالوگ تخصصی / بخش اختصاصی عمومی‌ها) ---
+  function setDesktopView(viewMode) {
+    desktopViewMode = viewMode;
+    const desktopBtn = document.getElementById('desktopGeneralCoursesBtn');
+    if (viewMode === 'general') {
+      document.documentElement.setAttribute('data-desktop-view', 'general');
+      if (desktopBtn) {
+        desktopBtn.innerHTML = '<span>📖 بازگشت به دروس تخصصی</span>';
+        desktopBtn.className = 'btn btn-outline btn-sm desktop-only-btn btn-general-hunter-desktop';
+      }
+      renderDedicatedGeneralSection();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      document.documentElement.removeAttribute('data-desktop-view');
+      if (desktopBtn) {
+        desktopBtn.innerHTML = '<span>🏛️ انتخاب دروس عمومی</span>';
+        desktopBtn.className = 'btn btn-primary btn-sm desktop-only-btn btn-general-hunter-desktop';
+      }
+      renderCatalog();
+    }
+  }
+
+  // --- مدیریت مودال چندمرحله‌ای دستیار انتخاب واحد عمومی‌ها (شکار صندلی) ---
+  function openGeneralPassedModal(startStep = 1) {
     const modal = document.getElementById('generalPassedModal');
     if (!modal) return;
-
-    // به‌روزرسانی وضعیت دکمه‌های جنسیت در مودال
-    const femaleBtn = document.getElementById('genderBtnFemale');
-    const maleBtn = document.getElementById('genderBtnMale');
-    if (femaleBtn && maleBtn) {
-      if (studentGender === 'خانم') {
-        femaleBtn.classList.add('active');
-        maleBtn.classList.remove('active');
-      } else {
-        maleBtn.classList.add('active');
-        femaleBtn.classList.remove('active');
-      }
-    }
-
-    renderGeneralPassedChecklist();
-    updateGeneralPassedSummary();
-
+    currentWizardStep = Math.max(1, Math.min(5, startStep));
+    renderWizardStep(currentWizardStep);
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
   }
@@ -1427,73 +1461,209 @@
     document.body.style.overflow = '';
   }
 
-  function updateGeneralPassedSummary() {
-    const countEl = document.getElementById('passedUnitsCount');
-    if (!countEl) return;
-    const totalUnits = passedGeneralCourses.length * 2;
-    countEl.textContent = toPersianDigits(totalUnits);
-  }
+  function renderClusterChecklistCard(clId) {
+    const config = (window.GENERAL_CLUSTERS_CONFIG || []).find(c => c.id === clId);
+    if (!config) return '';
+    const isCompleted = isClusterLocked(clId);
 
-  function renderGeneralPassedChecklist() {
-    const bodyEl = document.getElementById('generalPassedBody');
-    if (!bodyEl) return;
+    let badgeText = `${toPersianDigits(config.maxUnits)} واحد الزامی`;
+    if (clId === 'mabani') badgeText = '۴ واحد الزامی (اندیشه ۱ پیش‌نیاز ۲)';
+    else if (clId === 'khanevadeh') badgeText = '۲ واحد الزامی (مستقل)';
 
-    const clusters = window.GENERAL_CLUSTERS_CONFIG || [];
-    bodyEl.innerHTML = '';
+    const coursesHtml = config.courses.map(courseItem => {
+      const isChecked = passedGeneralCourses.includes(courseItem.id);
+      const isDisabled = courseItem.disabledInChart;
+      return `
+        <label class="check-item-row" style="${isDisabled ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+          <input type="checkbox" 
+                 data-course-id="${courseItem.id}" 
+                 data-cluster-id="${clId}"
+                 ${isChecked ? 'checked' : ''} 
+                 ${isDisabled ? 'disabled' : ''}>
+          <span class="check-item-name">${courseItem.name}</span>
+          <span class="check-item-sub">
+            (${toPersianDigits(courseItem.units)} واحد)
+            ${isDisabled ? `<span style="color: var(--danger-text); font-weight: bold;">[${courseItem.disabledNote || 'ارائه نمی‌شود'}]</span>` : ''}
+            ${courseItem.isPrereqFor ? '<span style="color: var(--primary);">[پیش‌نیاز اندیشه ۲]</span>' : ''}
+          </span>
+        </label>
+      `;
+    }).join('');
 
-    const grid = document.createElement('div');
-    grid.className = 'clusters-checklist-grid';
-
-    clusters.forEach(cl => {
-      const card = document.createElement('div');
-      const isCompleted = isClusterLocked(cl.id);
-      card.className = `cluster-check-card ${isCompleted ? 'is-completed' : ''}`;
-      card.dataset.clusterId = cl.id;
-
-      let badgeText = `${toPersianDigits(cl.maxUnits)} واحد الزامی`;
-      if (cl.id === 'mabani') {
-        badgeText = '۴ واحد الزامی (اندیشه ۱ پیش‌نیاز ۲)';
-      } else if (cl.id === 'khanevadeh') {
-        badgeText = '۲ واحد الزامی (مستقل)';
-      }
-
-      const coursesHtml = cl.courses.map(courseItem => {
-        const isChecked = passedGeneralCourses.includes(courseItem.id);
-        const isDisabled = courseItem.disabledInChart;
-        return `
-          <label class="check-item-row" style="${isDisabled ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
-            <input type="checkbox" 
-                   data-course-id="${courseItem.id}" 
-                   data-cluster-id="${cl.id}"
-                   ${isChecked ? 'checked' : ''} 
-                   ${isDisabled ? 'disabled' : ''}>
-            <span class="check-item-name">${courseItem.name}</span>
-            <span class="check-item-sub">
-              (${toPersianDigits(courseItem.units)} واحد)
-              ${isDisabled ? `<span style="color: var(--danger-text); font-weight: bold;">[${courseItem.disabledNote || 'ارائه نمی‌شود'}]</span>` : ''}
-              ${courseItem.isPrereqFor ? '<span style="color: var(--primary);">[پیش‌نیاز اندیشه ۲]</span>' : ''}
-            </span>
-          </label>
-        `;
-      }).join('');
-
-      card.innerHTML = `
+    return `
+      <div class="cluster-check-card ${isCompleted ? 'is-completed' : ''}" data-cluster-id="${clId}">
         <div class="cluster-card-head">
-          <span class="cluster-card-title">${cl.title}</span>
+          <span class="cluster-card-title">${config.title}</span>
           <span class="cluster-card-badge">${badgeText}</span>
         </div>
         <div class="cluster-items-list">
           ${coursesHtml}
         </div>
-      `;
+      </div>
+    `;
+  }
 
-      grid.appendChild(card);
+  function renderWizardStep(step) {
+    currentWizardStep = step;
+    const bodyEl = document.getElementById('generalPassedBody');
+    const counterEl = document.getElementById('wizardStepCounter');
+    const prevBtn = document.getElementById('wizardPrevBtn');
+    const nextBtn = document.getElementById('wizardNextBtn');
+    const finishBtn = document.getElementById('wizardFinishBtn');
+
+    if (!bodyEl) return;
+
+    // به‌روزرسانی نوار استپر
+    const bullets = document.querySelectorAll('.wizard-step-bullet');
+    bullets.forEach(b => {
+      const bStep = parseInt(b.getAttribute('data-step'), 10);
+      b.classList.remove('active', 'completed');
+      if (bStep === step) {
+        b.classList.add('active');
+      } else if (bStep < step) {
+        b.classList.add('completed');
+      }
     });
 
-    bodyEl.appendChild(grid);
+    if (counterEl) {
+      counterEl.textContent = `مرحله ${toPersianDigits(step)} از ۵`;
+    }
 
-    // افزودن رویداد تغییر به چک‌باکس‌ها
-    const checkboxes = grid.querySelectorAll('input[type="checkbox"]');
+    if (prevBtn) {
+      prevBtn.style.visibility = step > 1 ? 'visible' : 'hidden';
+    }
+    if (nextBtn) {
+      nextBtn.style.display = step < 5 ? 'inline-flex' : 'none';
+    }
+    if (finishBtn) {
+      finishBtn.style.display = step === 5 ? 'inline-flex' : 'none';
+    }
+
+    // رندر محتوای گام فعال
+    if (step === 1) {
+      bodyEl.innerHTML = `
+        <div class="wizard-step-pane">
+          <div class="wizard-step-guide">
+            <strong>💡 چرا تعیین جنسیت اولین گام است؟</strong>
+            دروس عمومی و معارف در دانشگاه به تفکیک خواهران و برادران ارائه می‌شوند. با انتخاب جنسیت خود، گروه‌های نامربوط از فهرست کدهای شما حذف شده تا وقتتان سر کدهای غیرمجاز در سامانه گلستان هدر نرود.
+          </div>
+          <div class="wizard-gender-grid">
+            <div class="wizard-gender-card ${studentGender === 'خانم' ? 'active' : ''}" id="wizardGenderFemale" data-gender="خانم">
+              <span class="wizard-gender-icon">👩‍🎓</span>
+              <span class="wizard-gender-title">دانشجوی دختر (خواهران)</span>
+              <span class="wizard-gender-sub">نمایش گروه‌های معارف ویژه دانشجویان خانم</span>
+            </div>
+            <div class="wizard-gender-card ${studentGender === 'آقا' ? 'active' : ''}" id="wizardGenderMale" data-gender="آقا">
+              <span class="wizard-gender-icon">👨‍🎓</span>
+              <span class="wizard-gender-title">دانشجوی پسر (برادران)</span>
+              <span class="wizard-gender-sub">نمایش گروه‌های معارف ویژه دانشجویان آقا</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const gFem = bodyEl.querySelector('#wizardGenderFemale');
+      const gMale = bodyEl.querySelector('#wizardGenderMale');
+      if (gFem) {
+        gFem.addEventListener('click', () => {
+          studentGender = 'خانم';
+          gFem.classList.add('active');
+          if (gMale) gMale.classList.remove('active');
+        });
+      }
+      if (gMale) {
+        gMale.addEventListener('click', () => {
+          studentGender = 'آقا';
+          gMale.classList.add('active');
+          if (gFem) gFem.classList.remove('active');
+        });
+      }
+
+    } else if (step === 2) {
+      bodyEl.innerHTML = `
+        <div class="wizard-step-pane">
+          <div class="wizard-step-guide">
+            <strong>💡 قوانین گرایش‌های مبانی نظری اسلام و اخلاق اسلامی:</strong>
+            از گرایش مبانی نظری حداکثر ۴ واحد (اندیشه ۱ پیش‌نیاز اندیشه ۲ است) و از گرایش اخلاق اسلامی فقط ۱ درس (۲ واحد) در کل دوره کارشناسی مجاز است. دروسی که در ترم‌های گذشته پاس کرده‌اید را علامت بزنید:
+          </div>
+          <div class="clusters-checklist-grid">
+            ${renderClusterChecklistCard('mabani')}
+            ${renderClusterChecklistCard('akhlagh')}
+          </div>
+        </div>
+      `;
+      attachCheckboxListeners(bodyEl);
+
+    } else if (step === 3) {
+      bodyEl.innerHTML = `
+        <div class="wizard-step-pane">
+          <div class="wizard-step-guide">
+            <strong>💡 قوانین گرایش‌های انقلاب، تاریخ و منابع اسلامی:</strong>
+            از هر یک از این ۳ گرایش، حداکثر ۱ درس (۲ واحد) در کل دوره کارشناسی مجاز است. درس <strong>«اندیشه سیاسی امام خمینی»</strong> نیز فعال شده و حق انتخاب آن برای ثبت سابقه در اختیار شماست:
+          </div>
+          <div class="clusters-checklist-grid">
+            ${renderClusterChecklistCard('enghelab')}
+            ${renderClusterChecklistCard('tarikh')}
+            ${renderClusterChecklistCard('manabe')}
+          </div>
+        </div>
+      `;
+      attachCheckboxListeners(bodyEl);
+
+    } else if (step === 4) {
+      bodyEl.innerHTML = `
+        <div class="wizard-step-pane">
+          <div class="wizard-step-guide">
+            <strong>💡 قانون درس دانش خانواده و جمعیت:</strong>
+            درس «دانش خانواده و جمعیت» ۲ واحد الزامی مستقل است و سهمیه اخذ آن در کنار دروس معارف اسلامی مجاز می‌باشد. آیا در ترم‌های قبل این درس را گذرانده‌اید؟
+          </div>
+          <div class="clusters-checklist-grid">
+            ${renderClusterChecklistCard('khanevadeh')}
+          </div>
+        </div>
+      `;
+      attachCheckboxListeners(bodyEl);
+
+    } else if (step === 5) {
+      const theologyPassedUnits = passedGeneralCourses.filter(id => id !== 'danesh_khanevadeh').length * 2;
+      const lockedTitles = getLockedClustersTitles();
+      const quotaText = getAllowedSemesterQuotaText();
+
+      bodyEl.innerHTML = `
+        <div class="wizard-step-pane">
+          <div class="wizard-step-guide">
+            <strong>🎯 جمع‌بندی سوابق و فعال‌سازی شکار هوشمند صندلی:</strong>
+            اطلاعات شما پردازش شد. با کلیک بر روی دکمه سبز رنگ زیر، فهرست دروس عمومی فقط برای گروه‌های مجاز شما چیده شده و صندلی‌ها بر اساس اولویت شکار اولویت‌بندی می‌شوند.
+          </div>
+          <div class="wizard-summary-box">
+            <div class="wizard-summary-item">
+              <span>👤 جنسیت انتخابی شما:</span>
+              <strong>دانشجوی ${studentGender === 'خانم' ? 'دختر (خواهران)' : 'پسر (برادران)'}</strong>
+            </div>
+            <div class="wizard-summary-item">
+              <span>📚 مجموع دروس معارف پاس‌شده:</span>
+              <strong>${toPersianDigits(theologyPassedUnits)} از ۱۰ واحد مصوب معارف</strong>
+            </div>
+            <div class="wizard-summary-item">
+              <span>👨‍👩‍👧 وضعیت درس دانش خانواده:</span>
+              <strong>${passedGeneralCourses.includes('danesh_khanevadeh') ? '✅ قبلاً پاس شده است' : '⏳ هنوز پاس نشده (قابل اخذ در این ترم)'}</strong>
+            </div>
+            <div class="wizard-summary-item">
+              <span>🚫 گرایش‌های قفل‌شده (سقف تکمیل):</span>
+              <span>${lockedTitles.length > 0 ? lockedTitles.join('، ') : 'هیچ‌کدام (تمامی گرایش‌ها باز هستند)'}</span>
+            </div>
+            <div class="wizard-summary-item" style="color: #10b981; font-weight: 800;">
+              <span>⚡ سهمیه مجاز انتخاب در ترم جاری:</span>
+              <span>${quotaText}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function attachCheckboxListeners(container) {
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(cb => {
       cb.addEventListener('change', () => {
         const cId = cb.getAttribute('data-course-id');
@@ -1507,8 +1677,7 @@
           passedGeneralCourses = passedGeneralCourses.filter(id => id !== cId);
         }
 
-        // بررسی و به‌روزرسانی کارت گرایش
-        const clusterCard = grid.querySelector(`.cluster-check-card[data-cluster-id="${clId}"]`);
+        const clusterCard = container.querySelector(`.cluster-check-card[data-cluster-id="${clId}"]`);
         if (clusterCard) {
           if (isClusterLocked(clId)) {
             clusterCard.classList.add('is-completed');
@@ -1516,24 +1685,263 @@
             clusterCard.classList.remove('is-completed');
           }
         }
-
-        updateGeneralPassedSummary();
       });
     });
   }
 
-  function saveGeneralPassed() {
+  function saveGeneralPassedAndFinish() {
     try {
       localStorage.setItem('passed_general_courses', JSON.stringify(passedGeneralCourses));
       localStorage.setItem('student_gender', studentGender);
-      localStorage.setItem('general_passed_prompted', 'true');
+      localStorage.setItem('general_wizard_completed', 'true');
     } catch (e) {
       console.warn('LocalStorage save error:', e);
     }
 
     closeGeneralPassedModal();
     updateUI();
-    showToast('کارنامه دروس عمومی، جنسیت و سوابق تحصیلی شما با موفقیت ذخیره شد.', 'success');
+
+    if (isDeviceMobile()) {
+      switchMobileTab('general');
+    } else {
+      setDesktopView('general');
+    }
+
+    renderDedicatedGeneralSection();
+    showToast('دستیار شکار صندلی با موفقیت اجرا شد. فهرست دروس عمومی بر اساس سوابق شما آماده گردید!', 'success');
+  }
+
+  // --- رندر سکشن مستقل و اختصاصی دروس عمومی (موبایل و دسکتاپ) ---
+  function renderDedicatedGeneralSection() {
+    const section = document.getElementById('generalCoursesSection');
+    if (!section) return;
+
+    // به‌روزرسانی متن جنسیت در هیرو سکشن
+    const heroGenderText = document.getElementById('generalHeroGenderText');
+    if (heroGenderText) {
+      heroGenderText.textContent = studentGender === 'خانم' ? 'خواهران' : 'برادران';
+    }
+
+    // ۱. پنل کنترل وضعیت سقف و شکار
+    const ctrlPanel = document.getElementById('generalDedicatedControlPanel');
+    if (ctrlPanel) {
+      const currentGenerals = selectedCourses.filter(c => c.isGeneral);
+      const passedCount = passedGeneralCourses.length;
+      const currentTheology = currentGenerals.filter(c => c.cluster !== 'khanevadeh');
+      const currentKhanevadeh = currentGenerals.filter(c => c.cluster === 'khanevadeh');
+
+      let statusMsg = '';
+      if (currentTheology.length >= 1 && currentKhanevadeh.length >= 1) {
+        statusMsg = '🚫 سقف مجاز ۲ درس عمومی این ترم تکمیل است (۱ معارف + ۱ خانواده).';
+      } else if (currentTheology.length >= 1) {
+        statusMsg = '⚠️ سقف درس معارف این ترم پر است؛ تنها مجاز به افزودن درس «دانش خانواده» هستید.';
+      } else if (currentKhanevadeh.length >= 1) {
+        statusMsg = '💡 درس دانش خانواده انتخاب شده؛ می‌توانید ۱ درس معارف اسلامی نیز اخذ کنید.';
+      } else {
+        statusMsg = '📌 مجاز به اخذ ۱ درس معارف (+ در صورت نیاز درس دانش خانواده) در این ترم هستید.';
+      }
+
+      ctrlPanel.innerHTML = `
+        <div class="general-panel-top">
+          <div class="general-gender-toggle-group">
+            <button type="button" class="general-gender-btn ${studentGender === 'خانم' ? 'active' : ''}" data-gender="خانم">
+              <span>👩‍🎓 خواهران</span>
+            </button>
+            <button type="button" class="general-gender-btn ${studentGender === 'آقا' ? 'active' : ''}" data-gender="آقا">
+              <span>👨‍🎓 برادران</span>
+            </button>
+          </div>
+          <button type="button" class="btn-open-passed-modal" id="btnDedicatedOpenPassedModal">
+            <span>⚙️ دستیار کارنامه (${toPersianDigits(passedCount * 2)} واحد پاس‌شده)</span>
+          </button>
+        </div>
+        <div class="general-status-badges" style="margin-top: 0.6rem;">
+          <span class="general-status-pill">
+            🏛️ عمومی‌های انتخابی این ترم: <strong>${toPersianDigits(currentGenerals.length)} از ۲ درس</strong>
+          </span>
+          <span class="general-status-pill ${currentGenerals.length >= 2 ? 'highlight' : ''}">
+            ${statusMsg}
+          </span>
+        </div>
+      `;
+
+      ctrlPanel.querySelectorAll('.general-gender-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const g = btn.getAttribute('data-gender');
+          if (g && g !== studentGender) {
+            studentGender = g;
+            localStorage.setItem('student_gender', g);
+            renderDedicatedGeneralSection();
+            showToast(`فهرست دروس عمومی بر اساس دانشجویان ${g === 'خانم' ? 'خواهر' : 'برادر'} فیلتر شد.`, 'info');
+          }
+        });
+      });
+
+      const openModalBtn = ctrlPanel.querySelector('#btnDedicatedOpenPassedModal');
+      if (openModalBtn) {
+        openModalBtn.addEventListener('click', () => openGeneralPassedModal(1));
+      }
+    }
+
+    // ۲. رندر نوار فیلتر گرایش‌ها (Cluster Filter Pills)
+    const filtersContainer = document.getElementById('generalDedicatedClusterFilters');
+    if (filtersContainer) {
+      filtersContainer.innerHTML = '';
+      const clustersConfig = window.GENERAL_CLUSTERS_CONFIG || [];
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `filter-chip ${activeDedicatedGeneralCluster === 'all' ? 'active' : ''}`;
+      allBtn.textContent = '📋 همه گرایش‌های مجاز';
+      allBtn.onclick = () => {
+        activeDedicatedGeneralCluster = 'all';
+        renderDedicatedGeneralSection();
+      };
+      filtersContainer.appendChild(allBtn);
+
+      clustersConfig.forEach(cl => {
+        const isLocked = isClusterLocked(cl.id);
+        const pill = document.createElement('button');
+        pill.className = `filter-chip ${activeDedicatedGeneralCluster === cl.id ? 'active' : ''} ${isLocked ? 'is-locked-cluster' : ''}`;
+        pill.innerHTML = `${cl.title} ${isLocked ? '<span style="font-size: 0.72rem; color: #ef4444;">[سقف تکمیل 🚫]</span>' : ''}`;
+        pill.title = isLocked ? 'سقف مجاز این گرایش قبلاً پاس شده است.' : cl.description;
+        pill.onclick = () => {
+          if (isLocked) {
+            showToast(`گرایش «${cl.title}» قبلاً پاس شده و طبق مقررات آموزشی اخذ درس مجدد از آن مجاز نیست.`, 'warning');
+          }
+          activeDedicatedGeneralCluster = cl.id;
+          renderDedicatedGeneralSection();
+        };
+        filtersContainer.appendChild(pill);
+      });
+    }
+
+    // ۳. رندر کارت‌های دروس عمومی بهینه‌شده
+    renderDedicatedGeneralCards();
+  }
+
+  function renderDedicatedGeneralCards() {
+    const cardsContainer = document.getElementById('generalDedicatedCardsList');
+    if (!cardsContainer) return;
+    cardsContainer.innerHTML = '';
+
+    const allGenerals = window.GENERAL_COURSES_DATA || [];
+    const validGenerals = allGenerals.filter(c => {
+      // تطبیق جنسیت
+      if (c.gender && c.gender !== studentGender && c.gender !== 'هر دو') return false;
+      // عدم نمایش گرایش‌های مسدود (مگر اینکه کاربر فیلتر اختصاصی آن گرایش را انتخاب کرده باشد)
+      if (activeDedicatedGeneralCluster === 'all' && isClusterLocked(c.cluster)) return false;
+      if (activeDedicatedGeneralCluster !== 'all' && c.cluster !== activeDedicatedGeneralCluster) return false;
+      return true;
+    });
+
+    // مرتب‌سازی الگوریتم شکار:
+    // ۱. دروس در شرف پر شدن (ظرفیت رو به اتمام)
+    // ۲. دروس تکمیل ظرفیت (امید به انصرافی)
+    // ۳. سایر دروس
+    validGenerals.sort((a, b) => {
+      const aFull = (a.registered || 0) >= (a.capacity || 30);
+      const bFull = (b.registered || 0) >= (b.capacity || 30);
+      if (aFull && !bFull) return 1;
+      if (!aFull && bFull) return -1;
+      return (b.registered || 0) - (a.registered || 0);
+    });
+
+    if (validGenerals.length === 0) {
+      cardsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏛️</div>
+          <div style="font-size: 1rem; font-weight: 800;">هیچ درس عمومی فعالی با شرایط انتخابی یافت نشد.</div>
+          <div style="font-size: 0.84rem; margin-top: 0.35rem;">ممکن است سقف این گرایش‌ها را پاس کرده باشید یا جنسیت متفاوتی تعریف شده باشد.</div>
+        </div>
+      `;
+      return;
+    }
+
+    validGenerals.forEach(course => {
+      const isSelected = selectedCourses.some(sc => sc.id === course.id);
+      const isFull = (course.registered || 0) >= (course.capacity || 30);
+      const isUrgent = !isFull && ((course.registered || 0) >= 20 || ((course.capacity || 30) - (course.registered || 0)) <= 7);
+
+      const card = document.createElement('div');
+      card.className = `course-card general-card ${isSelected ? 'selected' : ''} ${isFull ? 'full-capacity' : ''} ${isUrgent ? 'urgent-hunt' : ''}`;
+
+      const sessionText = (course.sessions || []).map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' | ') || 'ساعت نامشخص';
+      const examText = course.exam ? `${toPersianDigits(course.exam.date)} ساعت ${toPersianDigits(course.exam.time)}` : 'نامشخص';
+
+      let huntBadge = '';
+      if (isFull) {
+        huntBadge = '<span class="hunt-badge full">🔴 تکمیل (امید به انصرافی)</span>';
+      } else if (isUrgent) {
+        huntBadge = '<span class="hunt-badge urgent">⚡ شکار فوری گلستان</span>';
+      }
+
+      card.innerHTML = `
+        <div class="card-header">
+          <div class="course-code-wrap">
+            <span class="course-code">${toPersianDigits(course.code)}</span>
+            <button class="btn-quick-copy" title="کپی سریع کد برای بهستان">📋</button>
+            <span class="badge primary">${toPersianDigits(course.units || 2)} واحد</span>
+            <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">${getClusterTitle(course.cluster)}</span>
+            ${huntBadge}
+          </div>
+          <h3 class="course-name">${course.name}</h3>
+        </div>
+        <div class="card-body">
+          <div class="course-meta">
+            <span>👨‍🏫 استاد: <strong>${formatInstructor(course.instructor)}</strong></span>
+            <span>👤 جنسیت: <strong>${course.gender === 'خانم' ? '👩 خواهران' : '👨 برادران'}</strong></span>
+            <span>🕒 زمان کلاس: <strong>${sessionText}</strong></span>
+            <span>📝 آزمون: <strong>${examText}</strong></span>
+          </div>
+          <div class="general-capacity-wrap" style="margin-top: 0.6rem;">
+            <div class="general-capacity-bar">
+              <div class="general-capacity-fill ${isFull ? 'full' : isUrgent ? 'urgent' : ''}" style="width: ${Math.min(100, Math.round(((course.registered || 0) / (course.capacity || 30)) * 100))}%;"></div>
+            </div>
+            <div class="general-capacity-text">
+              <span>👥 ثبت‌نام: <strong>${toPersianDigits(course.registered || 0)} از ${toPersianDigits(course.capacity || 30)} نفر</strong></span>
+              ${isFull ? '<span style="color: #f87171; font-weight: 800;">امیدوار باش انصرافی بده!</span>' : ''}
+            </div>
+          </div>
+        </div>
+        <div class="card-footer" style="margin-top: 0.75rem;">
+          ${isSelected 
+            ? `<button class="btn btn-outline btn-sm" data-action="remove" style="color: var(--danger-text); border-color: var(--danger-border); width: 100%;">حذف از برنامه ✕</button>`
+            : (isFull 
+                ? `<button class="btn btn-outline btn-sm full-capacity-add" data-action="add" style="width: 100%; border-color: #ef4444; color: #f87171;">+ افزودن (امید به انصرافی)</button>`
+                : (isUrgent
+                    ? `<button class="btn btn-primary btn-sm urgent-hunt-add" data-action="add" style="width: 100%; background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 800;">⚡ شکار فوری +</button>`
+                    : `<button class="btn btn-primary btn-sm" data-action="add" style="width: 100%;">افزودن به برنامه +</button>`
+                  )
+              )
+          }
+        </div>
+      `;
+
+      card.addEventListener('click', (e) => {
+        const copyBtn = e.target.closest('.btn-quick-copy');
+        if (copyBtn) {
+          e.stopPropagation();
+          copySingleCourseCode(course.code, course.name, copyBtn);
+          return;
+        }
+
+        if (e.target.closest('button')) {
+          e.stopPropagation();
+          const action = e.target.getAttribute('data-action');
+          if (action === 'add') {
+            const added = addCourse(course);
+            if (added) renderDedicatedGeneralCards();
+          } else if (action === 'remove') {
+            removeCourse(course.id);
+            renderDedicatedGeneralCards();
+          }
+          return;
+        }
+        openInspector(course);
+      });
+
+      cardsContainer.appendChild(card);
+    });
   }
 
   // --- رندر جدول زمانی هفتگی روزبه‌روز (شنبه تا چهارشنبه) ---
@@ -2696,6 +3104,10 @@
       }
     });
 
+    if (tabId === 'general') {
+      renderDedicatedGeneralSection();
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -2765,8 +3177,14 @@
     // به‌روزرسانی نشانگرهای نوار ناوبری موبایل
     const mnCatalogBadge = document.getElementById('mnCatalogBadge');
     const mnSelectedBadge = document.getElementById('mnSelectedBadge');
+    const mnGeneralBadge = document.getElementById('mnGeneralBadge');
     if (mnCatalogBadge) mnCatalogBadge.textContent = toPersianDigits(allCourses.filter(c => c.isEntry403Allowed).length);
     if (mnSelectedBadge) mnSelectedBadge.textContent = toPersianDigits(totalUnits);
+    if (mnGeneralBadge) {
+      const generalCount = selectedCourses.filter(c => c.isGeneral).length;
+      mnGeneralBadge.textContent = toPersianDigits(generalCount);
+      mnGeneralBadge.style.display = generalCount > 0 ? 'inline-flex' : 'none';
+    }
 
     applyDeviceMode();
 
@@ -2777,6 +3195,9 @@
     }
 
     renderCatalog();
+    if (desktopViewMode === 'general' || activeMobileTab === 'general') {
+      renderDedicatedGeneralSection();
+    }
     renderDailySchedule(classConflicts);
     renderMatrixSchedule(classConflicts);
     renderLinearExamSchedule(examConflicts);
@@ -2841,43 +3262,83 @@
       });
     }
 
-    const filterChips = document.querySelectorAll('.filter-chip');
+    const filterChips = document.querySelectorAll('.sidebar-catalog .filter-chip');
     filterChips.forEach(chip => {
       chip.addEventListener('click', () => {
+        const filterVal = chip.getAttribute('data-filter');
+        if (filterVal === 'general') {
+          if (!isDeviceMobile()) {
+            setDesktopView('general');
+            return;
+          } else {
+            switchMobileTab('general');
+            return;
+          }
+        }
         filterChips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
-        activeFilter = chip.getAttribute('data-filter');
-
-        // اگر کاربر برای اولین بار تب دروس عمومی را باز می‌کند، مودال تعیین جنسیت و کارنامه باز شود
-        if (activeFilter === 'general' && localStorage.getItem('general_passed_prompted') !== 'true') {
-          openGeneralPassedModal();
-        }
-
+        activeFilter = filterVal;
         renderCatalog();
       });
     });
 
-    // اتصال دکمه‌های مودال کارنامه عمومی و انتخاب جنسیت
+    // دکمه اختصاصی دسکتاپ: انتخاب دروس عمومی
+    const desktopGenBtn = document.getElementById('desktopGeneralCoursesBtn');
+    if (desktopGenBtn) {
+      desktopGenBtn.addEventListener('click', () => {
+        if (desktopViewMode === 'general') {
+          setDesktopView('catalog');
+        } else {
+          setDesktopView('general');
+          if (localStorage.getItem('general_wizard_completed') !== 'true') {
+            openGeneralPassedModal(1);
+          }
+        }
+      });
+    }
+
+    // دکمه‌های داخل هیرو سکشن عمومی
+    const btnHeroWizard = document.getElementById('btnHeroOpenWizard');
+    if (btnHeroWizard) btnHeroWizard.addEventListener('click', () => openGeneralPassedModal(1));
+
+    const btnHeroReturn = document.getElementById('btnHeroReturnToCatalog');
+    if (btnHeroReturn) btnHeroReturn.addEventListener('click', () => setDesktopView('catalog'));
+
+    // دکمه‌های ناوبری دستیار ویزارد
     const closeGeneralPassedBtn = document.getElementById('closeGeneralPassedBtn');
     if (closeGeneralPassedBtn) closeGeneralPassedBtn.addEventListener('click', closeGeneralPassedModal);
 
-    const saveGeneralPassedBtn = document.getElementById('saveGeneralPassedBtn');
-    if (saveGeneralPassedBtn) saveGeneralPassedBtn.addEventListener('click', saveGeneralPassed);
-
-    const genderBtnFemale = document.getElementById('genderBtnFemale');
-    const genderBtnMale = document.getElementById('genderBtnMale');
-    if (genderBtnFemale && genderBtnMale) {
-      genderBtnFemale.addEventListener('click', () => {
-        studentGender = 'خانم';
-        genderBtnFemale.classList.add('active');
-        genderBtnMale.classList.remove('active');
-      });
-      genderBtnMale.addEventListener('click', () => {
-        studentGender = 'آقا';
-        genderBtnMale.classList.add('active');
-        genderBtnFemale.classList.remove('active');
+    const wizardPrevBtn = document.getElementById('wizardPrevBtn');
+    if (wizardPrevBtn) {
+      wizardPrevBtn.addEventListener('click', () => {
+        if (currentWizardStep > 1) {
+          renderWizardStep(currentWizardStep - 1);
+        }
       });
     }
+
+    const wizardNextBtn = document.getElementById('wizardNextBtn');
+    if (wizardNextBtn) {
+      wizardNextBtn.addEventListener('click', () => {
+        if (currentWizardStep < 5) {
+          renderWizardStep(currentWizardStep + 1);
+        }
+      });
+    }
+
+    const wizardFinishBtn = document.getElementById('wizardFinishBtn');
+    if (wizardFinishBtn) {
+      wizardFinishBtn.addEventListener('click', saveGeneralPassedAndFinish);
+    }
+
+    // پرش سریع با کلیک روی استپ‌های ویزارد
+    const wizardBullets = document.querySelectorAll('.wizard-step-bullet');
+    wizardBullets.forEach(b => {
+      b.addEventListener('click', () => {
+        const targetStep = parseInt(b.getAttribute('data-step'), 10);
+        if (targetStep) renderWizardStep(targetStep);
+      });
+    });
 
     // دکمه انتخاب خودکار دروس ترم ۵
     const autoPickBtn = document.getElementById('autoPickTerm5Btn');

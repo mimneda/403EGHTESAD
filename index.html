@@ -107,6 +107,9 @@
       </div>
 
       <div class="header-actions">
+        <button id="desktopGeneralCoursesBtn" class="btn btn-primary btn-sm desktop-only-btn btn-general-hunter-desktop" title="انتخاب دروس عمومی و شکار صندلی گلستان">
+          <span>🏛️ انتخاب دروس عمومی</span>
+        </button>
         <button id="deviceModeToggleBtn" class="btn btn-outline btn-sm" title="تغییر حالت نمایش بین موبایل و دسکتاپ">
           <span id="deviceModeIcon">📱</span> <span id="deviceModeText">حالت موبایل</span>
         </button>
@@ -338,6 +341,41 @@
 
     </section>
 
+    <!-- سکشن کاملاً مستقل و اختصاصی دروس عمومی و معارف اسلامی (شکار صندلی) -->
+    <section id="generalCoursesSection" class="general-courses-section" style="display: none;">
+      <div class="general-section-hero">
+        <div class="general-hero-info">
+          <h2><span>🏛️ بخش اختصاصی دروس عمومی و معارف (شکار صندلی گلستان)</span></h2>
+          <p class="general-hero-sub">فیلتر هوشمند بر اساس جنسیت (<strong id="generalHeroGenderText">خواهران</strong>)، سوابق کارنامه، و اولویت شکار صندلی‌های در حال اتمام</p>
+        </div>
+        <div class="general-hero-actions">
+          <button type="button" id="btnHeroOpenWizard" class="btn btn-primary btn-sm">
+            <span>⚙️ دستیار کارنامه و شکار صندلی</span>
+          </button>
+          <button type="button" id="btnHeroReturnToCatalog" class="btn btn-outline btn-sm desktop-only-btn">
+            <span>📖 بازگشت به کاتالوگ تخصصی</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- پنل کنترل وضعیت سقف ترم و شکار -->
+      <div id="generalDedicatedControlPanel" class="general-dedicated-control-panel">
+        <!-- با جاوااسکریپت رندر می‌شود -->
+      </div>
+
+      <!-- فیلترهای اسکرول‌شونده و اختصاصی گرایش‌های عمومی -->
+      <div class="general-dedicated-filters-wrap">
+        <div class="general-dedicated-filters" id="generalDedicatedClusterFilters">
+          <!-- با جاوااسکریپت رندر می‌شود -->
+        </div>
+      </div>
+
+      <!-- کانتینر کارت‌های عمومی -->
+      <div class="general-dedicated-cards-container" id="generalDedicatedCardsList">
+        <!-- با جاوااسکریپت تزریق می‌شود -->
+      </div>
+    </section>
+
   </main>
 
   <!-- دکمه شناور دروس انتخابی من (با قابلیت جابجایی و درگ در صفحه و دسترسی سریع به کدهای گلستان) -->
@@ -459,44 +497,67 @@
     </div>
   </div>
 
-  <!-- مودال ثبت کارنامه و دروس پاس‌شده عمومی (معارف) طبق چارت مصوب -->
+  <!-- مودال چندمرحله‌ای دستیار انتخاب واحد عمومی‌ها (شکار صندلی) -->
   <div id="generalPassedModal" class="app-modal" style="display: none; z-index: 10000;">
-    <div class="modal-card general-passed-modal-card">
+    <div class="modal-card general-passed-modal-card wizard-modal-card">
       <div class="modal-header">
-        <div>
-          <h3 id="generalPassedModalTitle">📋 کارنامه و دروس پاس‌شده عمومی (چارت معارف)</h3>
-          <span class="modal-subtitle">دروسی که در ترم‌های گذشته پاس کرده‌اید را تیک بزنید تا سقف گرایش‌ها و پیش‌نیازها اعمال شود:</span>
+        <div class="modal-title-wrap">
+          <h3 id="generalPassedModalTitle">🎯 دستیار انتخاب واحد عمومی‌ها (شکار صندلی)</h3>
+          <span class="modal-subtitle">راهنمای گام‌به‌گام برای رعایت سقف معارف، تفکیک جنسیتی و شکار بهترین اساتید</span>
         </div>
         <button id="closeGeneralPassedBtn" class="modal-close-btn" title="بستن پنجره">✕</button>
       </div>
 
-      <!-- تعیین جنسیت دانشجو -->
-      <div class="general-gender-selector-box">
-        <span class="gender-box-label">👤 جنسیت شما (جهت نمایش گروه‌های مجاز خواهران/برادران):</span>
-        <div class="gender-btn-group">
-          <button type="button" class="gender-select-btn active" data-gender="خانم" id="genderBtnFemale">
-            <span>👩 دانشجوی دختر (خواهران)</span>
-          </button>
-          <button type="button" class="gender-select-btn" data-gender="آقا" id="genderBtnMale">
-            <span>👨 دانشجوی پسر (برادران)</span>
-          </button>
+      <!-- استپ‌بار نشانگر ۵ مرحله دستیار -->
+      <div class="wizard-stepper" id="wizardStepper">
+        <div class="wizard-step-bullet active" data-step="1">
+          <span class="step-num">۱</span>
+          <span class="step-label">جنسیت</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step-bullet" data-step="2">
+          <span class="step-num">۲</span>
+          <span class="step-label">مبانی و اخلاق</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step-bullet" data-step="3">
+          <span class="step-num">۳</span>
+          <span class="step-label">انقلاب و تاریخ</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step-bullet" data-step="4">
+          <span class="step-num">۴</span>
+          <span class="step-label">خانواده</span>
+        </div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step-bullet" data-step="5">
+          <span class="step-num">۵</span>
+          <span class="step-label">شکار صندلی</span>
         </div>
       </div>
 
-      <!-- محتوای خوشه‌ها و چک‌لیست دروس -->
-      <div class="modal-body general-passed-modal-body" id="generalPassedBody">
-        <!-- با جاوااسکریپت بر اساس چارت مصوب رندر می‌شود -->
+      <!-- محتوای گام فعال ویزارد -->
+      <div class="modal-body general-passed-modal-body wizard-modal-body" id="generalPassedBody">
+        <!-- با جاوااسکریپت بر اساس گام فعال رندر می‌شود -->
       </div>
 
-      <div class="general-passed-modal-footer">
-        <div class="passed-summary-text" id="passedSummaryText">
-          <span>مجموع دروس پاس‌شده: <strong id="passedUnitsCount">۰</strong> از ۱۰ واحد معارف</span>
+      <!-- فوتر ناوبری مراحل دستیار -->
+      <div class="wizard-modal-footer">
+        <button type="button" id="wizardPrevBtn" class="btn btn-outline" style="visibility: hidden;">
+          ← مرحله قبل
+        </button>
+        <div class="wizard-step-counter" id="wizardStepCounter">
+          مرحله ۱ از ۵
         </div>
-        <button id="saveGeneralPassedBtn" class="btn btn-primary">
-          💾 ذخیره کارنامه و به‌روزرسانی دروس
+        <button type="button" id="wizardNextBtn" class="btn btn-primary">
+          مرحله بعد →
+        </button>
+        <button type="button" id="wizardFinishBtn" class="btn btn-primary" style="display: none; background: #10b981; border-color: #10b981;">
+          🎯 تایید و ورود به شکار صندلی‌های عمومی
         </button>
       </div>
     </div>
+  </div>
   <!-- مودال استعلام و تایید پیش‌نیاز دروس اختیاری طبق بخشنامه آموزش -->
   <div id="prereqConfirmModal" class="app-modal" style="display: none; z-index: 10001;">
     <div class="modal-card prereq-confirm-card">
@@ -577,10 +638,15 @@
 
   <!-- نوار ناوبری پایین صفحه (مخصوص حالت موبایل) -->
   <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="ناوبری لمسی موبایل">
-    <button class="mobile-nav-item active" data-tab="catalog" title="فهرست دروس ارائه شده">
+    <button class="mobile-nav-item active" data-tab="catalog" title="فهرست دروس تخصصی">
       <span class="mn-icon">📖</span>
       <span class="mn-label">دروس</span>
       <span class="mn-badge" id="mnCatalogBadge">۵۶</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="general" title="دروس عمومی و معارف (شکار صندلی)">
+      <span class="mn-icon">🏛️</span>
+      <span class="mn-label">عمومی‌ها</span>
+      <span class="mn-badge" id="mnGeneralBadge" style="display: none;">۰</span>
     </button>
     <button class="mobile-nav-item" data-tab="schedule" title="برنامه هفتگی کلاس‌ها">
       <span class="mn-icon">🗓️</span>
