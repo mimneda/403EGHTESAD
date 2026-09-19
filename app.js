@@ -1867,6 +1867,12 @@
     const section = document.getElementById('generalCoursesSection');
     if (!section) return;
 
+    // متغیرهای محاسباتی عمومی در محدوده کل تابع برای جلوگیری از خطای ReferenceError
+    const currentGenerals = selectedCourses.filter(c => c.isGeneral);
+    const passedCount = passedGeneralCourses.length;
+    const currentTheology = currentGenerals.filter(c => c.cluster !== 'khanevadeh');
+    const currentKhanevadeh = currentGenerals.filter(c => c.cluster === 'khanevadeh');
+
     // به‌روزرسانی متن جنسیت در هیرو سکشن
     const heroGenderText = document.getElementById('generalHeroGenderText');
     if (heroGenderText) {
@@ -1876,10 +1882,6 @@
     // ۱. پنل کنترل وضعیت سقف و شکار
     const ctrlPanel = document.getElementById('generalDedicatedControlPanel');
     if (ctrlPanel) {
-      const currentGenerals = selectedCourses.filter(c => c.isGeneral);
-      const passedCount = passedGeneralCourses.length;
-      const currentTheology = currentGenerals.filter(c => c.cluster !== 'khanevadeh');
-      const currentKhanevadeh = currentGenerals.filter(c => c.cluster === 'khanevadeh');
 
       let statusMsg = '';
       if (currentTheology.length >= 1 && currentKhanevadeh.length >= 1) {
