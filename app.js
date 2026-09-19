@@ -187,7 +187,7 @@
               level: 'danger',
               date: date,
               courses: [cA, cB],
-              message: `تداخل ساعت امتحان: سیستم آموزش معتقده می‌تونید مثل فوتون کوانتومی همزمان در دو سالن مجزا حاضر بشید و آزمون بدید! («${cA.name}» و «${cB.name}» در ساعت ${toPersianDigits(cA.exam.time)} تاریخ ${toPersianDigits(date)})`
+              message: `حضور همزمان در دو سالن امتحانی؟ مگه تقسیم میتوز کنی! («${cA.name}» و «${cB.name}» در ساعت ${toPersianDigits(cA.exam.time)} تاریخ ${toPersianDigits(date)})`
             });
           });
         } else {
@@ -195,7 +195,7 @@
             level: 'warning',
             date: date,
             courses: list,
-            message: `دو امتحان در یک روز: تسلیت صمیمانه! از الان برای حمله پانیک و سردرد عصرگاهی بعد از امتحان دوم (${list.map(c => c.name).join(' و ')}) وقت قبلی بگیرید.`
+            message: `خداحافظی رسمی با خواب؛ رسماً رد دادی! دو امتحان در تاریخ ${toPersianDigits(date)} (${list.map(c => c.name).join(' و ')}).`
           });
         }
       }
@@ -235,7 +235,7 @@
     if (!course.isEntry403Allowed) {
       return {
         allowed: false,
-        reason: course.disabledReason || 'این درس برای دانشجویان ورودی ۴۰۳ مجاز نمی‌باشد.'
+        reason: 'دست نزن؛ این درس ارث پدری ترم‌بالایی‌های فسیل‌شده‌ست و برای ورودی ۴۰۳ مجاز نیست.'
       };
     }
 
@@ -259,7 +259,26 @@
       };
     }
 
-    // بررسی سقف مجاز واحد (۲۰ واحد عادی یا ۲۴ واحد معدل الف)
+    // قاعده تداخل قطعی ساعت امتحان (منع کامل اخذ همزمان)
+    if (course.exam && course.exam.date && course.exam.time) {
+      const [sNew, eNew] = course.exam.time.split('-');
+      const examConflictCourse = selectedCourses.find(c => {
+        if (c.exam && c.exam.date === course.exam.date && c.exam.time) {
+          const [sOld, eOld] = c.exam.time.split('-');
+          return timesOverlap(sNew, eNew, sOld, eOld);
+        }
+        return false;
+      });
+      if (examConflictCourse) {
+        return {
+          allowed: false,
+          conflictType: 'EXAM_TIME_CONFLICT',
+          reason: `حضور همزمان در دو سالن امتحانی؟ مگه تقسیم میتوز کنی! این درس تداخل هم‌زمان ساعت امتحان با درس «${examConflictCourse.name}» داره و سامانه اجازه اخذ هم‌زمان نمیده.`
+        };
+      }
+    }
+
+    // بررسی سقف مجاز واحد (۲۰ واحد عادی یا ۲۴ واحد آزاد)
     const maxUnits = isHonorStudent ? 24 : 20;
     const currentTotal = selectedCourses.reduce((sum, c) => sum + (c.units || 0), 0);
     if (currentTotal + (course.units || 0) > maxUnits) {
@@ -279,10 +298,45 @@
       return false;
     }
 
+    // بررسی تداخل ساعت کلاس با دروس انتخابی فعلی
+    let classConflictCourse = null;
+    let conflictDay = '';
+    let conflictTime = '';
+    if (course.sessions && course.sessions.length > 0) {
+      for (const sNew of course.sessions) {
+        const [sStart, sEnd] = (sNew.time || '').split('-');
+        for (const existing of selectedCourses) {
+          for (const sOld of (existing.sessions || [])) {
+            if (sOld.day === sNew.day) {
+              const [oStart, oEnd] = (sOld.time || '').split('-');
+              if (timesOverlap(sStart, sEnd, oStart, oEnd)) {
+                classConflictCourse = existing;
+                conflictDay = sNew.day;
+                conflictTime = sNew.time;
+                break;
+              }
+            }
+          }
+          if (classConflictCourse) break;
+        }
+        if (classConflictCourse) break;
+      }
+    }
+
     selectedCourses.push(course);
     saveState();
     updateUI();
-    if (!silent) showToast(`درس «${course.name}» اضافه شد. به جمع بدهکاران شب امتحان خوش آمدید.`, 'success');
+
+    if (!silent) {
+      if (classConflictCourse) {
+        showToast(
+          `خطای جدی تداخل کلاسی: درس «${course.name}» با درس «${classConflictCourse.name}» در روز ${conflictDay} ساعت ${toPersianDigits(conflictTime)} تداخل داره و قانوناً نمی‌تونی جفتش رو برداری! ولی به برنامه اضافه شد تا خودت تنظیم کنی.`,
+          'danger'
+        );
+      } else {
+        showToast(`درس «${course.name}» اضافه شد. به جمع بدهکاران شب امتحان خوش آمدید.`, 'success');
+      }
+    }
     return true;
   }
 
@@ -402,7 +456,7 @@
 
     const actionBtn = document.getElementById('inspActionBtn');
     if (!c.isEntry403Allowed) {
-      actionBtn.textContent = 'غیرمجاز (مخصوص ماقبل ۴۰۲)';
+      actionBtn.textContent = 'دست نزن؛ این درس ارث پدری ترم‌بالایی‌های فسیل‌شده‌ست';
       actionBtn.className = 'btn btn-outline';
       actionBtn.disabled = true;
       actionBtn.onclick = null;
@@ -548,7 +602,7 @@
           <span>🕒 زمان: ${sessionSummary || 'بدون زمان کلاسی'}</span>
           <div>
             ${!isAllowed ? `
-              <button class="card-action-btn disabled" disabled title="${course.disabledReason}">غیرمجاز</button>
+              <button class="card-action-btn disabled" disabled title="دست نزن؛ این درس ارث پدری ترم‌بالایی‌های فسیل‌شده‌ست">دست نزن (ارث ترم‌بالایی‌ها)</button>
             ` : isSelected ? `
               <button class="card-action-btn remove" data-action="remove">حذف ✕</button>
             ` : `
@@ -628,13 +682,22 @@
         if (slot.isBreak) {
           slotBox.innerHTML = `
             <div class="break-tag">☕ [تنفس رسمی]</div>
-            <div class="break-text">${slot.title}</div>
-            <div class="break-subtext">نبرد تن‌به‌تن برای قورمه‌سبزی کافوری سلف و صف بی‌پایان ژتون</div>
+            <div class="break-text">ساعت ۱۲ تا ۱۳: برنج و کافور هندی در انتظارته</div>
+            <div class="break-subtext">صف ژتون سلف و مبارزه بقا برای دریافت غذا</div>
           `;
         } else {
+          let slotHumorTitle = '';
+          if (slot.id === '08-10') {
+            slotHumorTitle = 'ساعت شروع کلاس 8 صبحه ولی تو باید 5 صبح پاشی ترافیک همت گیر نکنی';
+          } else if (slot.id === '17-19') {
+            slotHumorTitle = 'آخرین بازمانده دانشکده؛ حراست کلید میندازه، تو هنوز پای تخته‌ای';
+          }
+
           slotBox.innerHTML = `
-            <div class="slot-time-label">
+            <div class="slot-time-label" ${slotHumorTitle ? `title="${slotHumorTitle}"` : ''}>
               <span>⏰ ${slot.label}</span>
+              ${slot.id === '08-10' ? '<span class="slot-humor-badge">🚗 ترافیک همت</span>' : ''}
+              ${slot.id === '17-19' ? '<span class="slot-humor-badge">🌙 آخرین بازمانده</span>' : ''}
             </div>
             <div class="slot-content"></div>
           `;
@@ -648,7 +711,7 @@
             emptyEl.setAttribute('role', 'button');
             emptyEl.setAttribute('tabindex', '0');
             emptyEl.setAttribute('aria-label', `انتخاب درس برای روز ${day} ساعت ${slot.label}`);
-            emptyEl.title = `برای مشاهده درس‌های قابل اخذ و پیشنهاد هوشمند در روز ${day} ساعت ${slot.label} کلیک کنید`;
+            emptyEl.title = `ساعت طلایی فرار از دانشگاه؛ پرش نکن، پشیمون میشی`;
             emptyEl.innerHTML = `
               <div class="slot-empty-content">
                 <div class="slot-empty-action">
@@ -738,7 +801,7 @@
         const breakCell = document.createElement('td');
         breakCell.colSpan = DAYS_ORDER.length;
         breakCell.className = 'break-cell';
-        breakCell.textContent = 'استراحت و ناهار (ساعت ۱۲:۰۰ تا ۱۳:۰۰) — نبرد تن‌به‌تن برای دریافت غذا در صف بی‌پایان سلف';
+        breakCell.textContent = 'استراحت و ناهار (ساعت ۱۲:۰۰ تا ۱۳:۰۰) — ساعت ۱۲ تا ۱۳: برنج و کافور هندی در انتظارته';
         row.appendChild(breakCell);
       } else {
         DAYS_ORDER.forEach(day => {
@@ -1124,7 +1187,7 @@
     if (!modal || !bodyEl) return;
 
     if (titleEl) {
-      titleEl.innerHTML = `🎯 درس‌های قابل ارائه در این ساعت`;
+      titleEl.innerHTML = `🎯 ساعت طلایی فرار از دانشگاه؛ پرش نکن، پشیمون میشی`;
     }
 
     // استخراج دروس مجاز برای ورودی ۴۰۳ که در این روز و ساعت جلسه دارند
@@ -1153,7 +1216,7 @@
             در روز ${day} ساعت ${slot.label} هیچ کلاسی برای دانشجویان ورودی ۴۰۳ ارائه نشده است.
           </div>
           <p style="font-size: 0.85rem; line-height: 1.6; max-width: 440px; margin: 0 auto;">
-            این بازه زمانی می‌تواند برای استراحت، مطالعه، کار در کتابخانه دانشکده یا هماهنگی سایر امور هفتگی مورد استفاده قرار گیرد.
+            این بازه ساعت طلایی فرار از دانشگاهه؛ پرش نکن، پشیمون میشی! با خیال راحت برو خونه یا از دانشگاه بزن بیرون.
           </p>
         </div>
       `;
@@ -1602,7 +1665,7 @@
           btn.innerHTML = originalHtml;
         }, 2000);
       }
-      showToast(`کد ${toPersianDigits(code)} (${name || ''}) در حافظه کپی شد. مستقیماً در فیلد مربوطه در گلستان Paste کنید!`, 'success');
+      showToast(`کد ${toPersianDigits(code)} (${name || ''}) کپی شد؛ حالا بشین پای رفرش زدن سرور عهد بوق بهستان!`, 'success');
     };
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1661,7 +1724,7 @@
       if (text) text.textContent = 'کپی یکجای همه کدها';
     }, 2000);
 
-    showToast('کدهای گلستان در کلیپ‌بورد کپی شد. حالا برید پای سامانه گلستان و سریع ثبت کنید تا ظرفیت‌ها پر نشده!', 'success');
+    showToast('کپی شد؛ حالا بشین پای رفرش زدن سرور عهد بوق بهستان،', 'success');
   }
 
   // --- تشخیص هوشمند دستگاه و مدیریت نمای موبایل / دسکتاپ ---
@@ -1884,8 +1947,8 @@
         updateUI();
         showToast(
           isHonorStudent
-            ? 'سقف مجاز انتخاب واحد به ۲۴ واحد تغییر یافت.'
-            : 'سقف مجاز انتخاب واحد به ۲۰ واحد تغییر یافت.',
+            ? 'باشه بتمن؛ بهمن‌ماه پای نمرات گریه کردی تقصیر سامانه نیست!'
+            : 'عقب‌نشینی تاکتیکی به نفع بقا و سلامت روان.',
           'info'
         );
       });

@@ -925,6 +925,22 @@ body {
   justify-content: space-between;
 }
 
+.slot-humor-badge {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  cursor: help;
+  transition: all var(--transition-fast);
+}
+
+.slot-humor-badge:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
 /* User's Specific Break Time (ساعت 12 تا 1: استراحت - خاکستری) */
 .time-slot-box.break-slot {
   background-color: var(--break-bg) !important;
@@ -2766,7 +2782,9 @@ body.inspector-open .floating-selected-container:not(.is-dragged) {
 .setup-option-sub {
   font-size: 0.72rem;
   color: var(--text-muted);
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .setup-option-btn.active .setup-option-sub {
