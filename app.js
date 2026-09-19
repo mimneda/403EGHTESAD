@@ -170,6 +170,39 @@
     return timesOverlap(sStart, sEnd, slot.start, slot.end);
   }
 
+  // نرمال‌سازی نام روزهای هفته (حذف فواصل و نیم‌فاصله‌ها برای انطباق ۱۰۰٪)
+  function normalizeDay(d) {
+    return (d || '').replace(/[\s\u200c\u200b]+/g, '').trim();
+  }
+
+  // --- تشخیص تداخل ساعت کلاس با دروس انتخابی فعلی ---
+  function getCourseTimeConflict(course) {
+    if (!course || !course.sessions || course.sessions.length === 0) return null;
+    for (const sNew of course.sessions) {
+      if (!sNew.day || !sNew.time) continue;
+      const [sStart, sEnd] = sNew.time.split('-').map(t => t.trim());
+      const newDayNorm = normalizeDay(sNew.day);
+      for (const existing of selectedCourses) {
+        if (existing.id === course.id) continue;
+        for (const sOld of (existing.sessions || [])) {
+          if (!sOld.day || !sOld.time) continue;
+          if (normalizeDay(sOld.day) === newDayNorm) {
+            const [oStart, oEnd] = sOld.time.split('-').map(t => t.trim());
+            if (timesOverlap(sStart, sEnd, oStart, oEnd)) {
+              return {
+                conflictingCourse: existing,
+                day: sNew.day,
+                time: sNew.time,
+                conflictingTime: sOld.time
+              };
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   // --- تحلیل تداخل‌های امتحانی و کلاسی ---
   function analyzeConflicts() {
     const examConflicts = [];
@@ -333,14 +366,6 @@
   // سیستم پیشنهاد هوشمند بر اساس ساعات خالی برنامه هفتگی
   function getSmartGeneralRecommendations() {
     if (!window.GENERAL_COURSES_DATA) return [];
-    
-    // زمان‌های اشغال‌شده توسط دروس فعلی در جدول
-    const busySlotKeys = new Set();
-    selectedCourses.forEach(c => {
-      (c.sessions || []).forEach(s => {
-        busySlotKeys.add(`${s.day}_${s.time}`);
-      });
-    });
 
     const candidates = window.GENERAL_COURSES_DATA.filter(course => {
       // انطباق جنسیت
@@ -363,7 +388,11 @@
       const normName = normalizeName(course.name);
       if (selectedCourses.some(sc => (sc.code || '').split('_')[0] === baseCode || normalizeName(sc.name) === normName)) return false;
 
-      // بدون تداخل امتحانی
+      // بررسی قطعی عدم تداخل زمانی ساعت کلاس با دروس انتخابی
+      if (!course.sessions || course.sessions.length === 0) return false;
+      if (getCourseTimeConflict(course) !== null) return false;
+
+      // بررسی قطعی عدم تداخل امتحانی با دروس انتخابی
       if (course.exam && course.exam.date && course.exam.time) {
         const [sNew, eNew] = course.exam.time.split('-');
         const hasExamConflict = selectedCourses.some(c => {
@@ -376,33 +405,53 @@
         if (hasExamConflict) return false;
       }
 
-      // بررسی اینکه آیا جلسات کلاس در ساعات خالی می‌نشیند یا تداخل دارد
-      if (!course.sessions || course.sessions.length === 0) return false;
-      const fitsInEmptySlots = course.sessions.every(s => {
-        if (busySlotKeys.has(`${s.day}_${s.time}`)) return false;
-        return !selectedCourses.some(sc => {
-          return (sc.sessions || []).some(sOld => {
-            if (sOld.day === s.day) {
-              const [s1, e1] = (s.time || '').split('-');
-              const [s2, e2] = (sOld.time || '').split('-');
-              return timesOverlap(s1, e1, s2, e2);
-            }
-            return false;
-          });
-        });
-      });
-
-      return fitsInEmptySlots;
+      return true;
     });
 
-    // اولویت‌دهی هوشمند بر اساس ظرفیت و تعداد ثبت‌نامی:
-    // ۱. ابتدا دروسی که هنوز جای خالی دارند (رو به اتمام‌ها در صدر برای شکار فوری)
-    // ۲. سپس دروسی که ظرفیتشان ۳۰/۳۰ پر شده (امید به انصرافی)
+    // اولویت‌دهی هوشمند بر اساس ظرفیت رو به اتمام (شکار صندلی):
+    // سطح ۱: شکار فوری (ظرفیت رو به اتمام: ۱ تا ۸ صندلی باقیمانده) — کمترین صندلی باقیمانده در بالاترین اولویت!
+    // سطح ۲: دروس با ظرفیت باز عادی (بیش از ۸ صندلی مانده)
+    // سطح ۳: دروس تکمیل ظرفیت (۰ صندلی مانده - صرفاً امید به انصرافی)
     candidates.sort((a, b) => {
-      const isFullA = (a.capacity > 0 && (a.registered || 0) >= a.capacity);
-      const isFullB = (b.capacity > 0 && (b.registered || 0) >= b.capacity);
-      if (isFullA !== isFullB) return isFullA ? 1 : -1;
-      return (b.registered || 0) - (a.registered || 0);
+      const capA = a.capacity || 30;
+      const regA = a.registered || 0;
+      const remA = Math.max(0, capA - regA);
+      const isFullA = remA === 0;
+      const isUrgentA = !isFullA && (remA <= 8 || regA >= 20);
+
+      const capB = b.capacity || 30;
+      const regB = b.registered || 0;
+      const remB = Math.max(0, capB - regB);
+      const isFullB = remB === 0;
+      const isUrgentB = !isFullB && (remB <= 8 || regB >= 20);
+
+      const getTier = (urgent, full) => {
+        if (urgent) return 1;
+        if (!full) return 2;
+        return 3;
+      };
+
+      const tierA = getTier(isUrgentA, isFullA);
+      const tierB = getTier(isUrgentB, isFullB);
+
+      if (tierA !== tierB) {
+        return tierA - tierB;
+      }
+
+      // در سطح شکار فوری: اولویت قطعی با درسی است که صندلی کمتری مانده (مثلا ۱ صندلی قبل از ۵ صندلی)
+      if (tierA === 1) {
+        if (remA !== remB) return remA - remB;
+        return regB - regA;
+      }
+
+      // در سطح باز: بیشترین درصد پرشدن
+      if (tierA === 2) {
+        if (remA !== remB) return remA - remB;
+        return regB - regA;
+      }
+
+      // در سطح تکمیل ظرفیت: بر اساس تعداد متقاضیان
+      return regB - regA;
     });
 
     return candidates;
@@ -465,6 +514,16 @@
         allowed: false,
         conflictType: 'SAME_COURSE_DIFFERENT_PROF',
         reason: `دو تا استاد برای یه درس؟ مگه مسابقه شانس گلستانه؟ درس «${course.name}» قبلاً با استاد «${formatInstructor(existingSameName.instructor)}» برداشته شده و طبق قوانین آموزشی امکان اخذ همزمان با دو استاد وجود ندارد.`
+      };
+    }
+
+    // قاعده تداخل ساعت کلاسی هفتگی (منع قطعی اخذ در صورت تداخل کلاسی)
+    const timeConflict = getCourseTimeConflict(course);
+    if (timeConflict) {
+      return {
+        allowed: false,
+        conflictType: 'CLASS_TIME_CONFLICT',
+        reason: `⛔ خطای بحرانی تداخل زمانی! جلسه روز ${timeConflict.day} ساعت (${toPersianDigits(timeConflict.time)}) درس «${course.name}» با درس انتخابی شما «${timeConflict.conflictingCourse.name}» (استاد ${formatInstructor(timeConflict.conflictingCourse.instructor)}) تداخل هم‌پوشانی دارد و سامانه اجازه اخذ هم‌زمان نمی‌دهد.`
       };
     }
 
@@ -618,6 +677,11 @@
 
   function handleAddCourseAttempt(course, onSuccess = null) {
     if (!course) return false;
+    const check = canAddCourse(course);
+    if (!check.allowed) {
+      showToast(check.reason, 'danger');
+      return false;
+    }
     const prereqInfo = getElectivePrereqInfo(course);
     if (prereqInfo) {
       openPrereqConfirmModal(course, prereqInfo, onSuccess);
@@ -633,33 +697,8 @@
   function addCourse(course, silent = false) {
     const check = canAddCourse(course);
     if (!check.allowed) {
-      if (!silent) showToast(check.reason, 'warning');
+      if (!silent) showToast(check.reason, 'danger');
       return false;
-    }
-
-    // بررسی تداخل ساعت کلاس با دروس انتخابی فعلی
-    let classConflictCourse = null;
-    let conflictDay = '';
-    let conflictTime = '';
-    if (course.sessions && course.sessions.length > 0) {
-      for (const sNew of course.sessions) {
-        const [sStart, sEnd] = (sNew.time || '').split('-');
-        for (const existing of selectedCourses) {
-          for (const sOld of (existing.sessions || [])) {
-            if (sOld.day === sNew.day) {
-              const [oStart, oEnd] = (sOld.time || '').split('-');
-              if (timesOverlap(sStart, sEnd, oStart, oEnd)) {
-                classConflictCourse = existing;
-                conflictDay = sNew.day;
-                conflictTime = sNew.time;
-                break;
-              }
-            }
-          }
-          if (classConflictCourse) break;
-        }
-        if (classConflictCourse) break;
-      }
     }
 
     selectedCourses.push(course);
@@ -677,22 +716,16 @@
       });
       const isFullGeneral = course.isGeneral && course.capacity > 0 && (course.registered || 0) >= course.capacity;
 
-      if (classConflictCourse) {
-        let msg = `خطای جدی تداخل کلاسی: درس «${course.name}» با درس «${classConflictCourse.name}» در روز ${conflictDay} ساعت ${toPersianDigits(conflictTime)} تداخل داره و قانوناً نمی‌تونی جفتش رو برداری! ولی به برنامه اضافه شد تا خودت تنظیم کنی.`;
-        if (has8AmSession) {
-          msg += ' در ضمن ساعت شروع کلاس 8 صبحه ولی تو باید 5 صبح پاشی ترافیک همت گیر نکنی!';
-        }
-        showToast(msg, 'danger');
-      } else if (isFullGeneral && has8AmSession) {
+      if (isFullGeneral && has8AmSession) {
         showToast(`درس «${course.name}» با ظرفیت تکمیل اضافه شد (امیدوار باش انصرافی بده برداری!). در ضمن ساعت شروع کلاس ۸ صبحه ولی تو باید ۵ صبح پاشی ترافیک همت گیر نکنی!`, 'warning');
       } else if (isFullGeneral) {
         showToast(`درس «${course.name}» با ظرفیت تکمیل (${toPersianDigits(course.registered)} از ${toPersianDigits(course.capacity)} نفر) اضافه شد. امیدوار باش انصرافی بده برداری!`, 'warning');
       } else if (has8AmSession) {
-        showToast(`درس «${course.name}» اضافه شد. ساعت شروع کلاس 8 صبحه ولی تو باید 5 صبح پاشی ترافیک همت گیر نکنی!`, 'info');
+        showToast(`درس «${course.name}» با موفقیت اضافه شد. ساعت شروع کلاس 8 صبحه ولی تو باید 5 صبح پاشی ترافیک همت گیر نکنی!`, 'info');
       } else if (has5PmSession) {
-        showToast(`درس «${course.name}» اضافه شد. آخرین بازمانده دانشکده؛ حراست کلید می‌ندازه، تو هنوز پای تخته‌ای!`, 'info');
+        showToast(`درس «${course.name}» با موفقیت اضافه شد. آخرین بازمانده دانشکده؛ حراست کلید می‌ندازه، تو هنوز پای تخته‌ای!`, 'info');
       } else {
-        showToast(`درس «${course.name}» اضافه شد. به جمع بدهکاران شب امتحان خوش آمدید.`, 'success');
+        showToast(`درس «${course.name}» با موفقیت به برنامه شما افزوده شد.`, 'success');
       }
     }
     return true;
@@ -1132,23 +1165,52 @@
 
     // الگوریتم مرتب‌سازی هوشمند شکار:
     // ۱. دروس گرایش‌های قفل‌شده یا بدون پیش‌نیاز به انتهای لیست می‌روند.
-    // ۲. در میان دروس مجاز، ابتدا دروسی که هنوز جای خالی دارند نمایش داده می‌شوند تا کاربر آن‌ها را شکار کند.
-    // ۳. این دروس با جای خالی به ترتیب «بیشترین ثبت‌نامی» (پرتقاضاترین‌ها) مرتب می‌شوند تا سرعت اتمام مشخص شود.
-    // ۴. سپس دروسی که ظرفیتشان توسط ترم‌بالایی‌ها پر شده نمایش داده می‌شوند (امید به انصرافی).
+    // ۲. دروسی که با ساعات هفتگی انتخابی فعلی تداخل ندارند در اولویت بالاتر قرار می‌گیرند.
+    // ۳. دروس بدون تداخل به ترتیب ظرفیت رو به اتمام (کمترین صندلی باقیمانده برای شکار فوری) مرتب می‌شوند.
+    // ۴. سپس دروس با ظرفیت باز و در نهایت دروس تکمیل ظرفیت (امید به انصرافی).
     filteredGenerals.sort((a, b) => {
       const lockA = isClusterLocked(a.cluster) || !isCoursePrereqMet(a);
       const lockB = isClusterLocked(b.cluster) || !isCoursePrereqMet(b);
       if (lockA !== lockB) return lockA ? 1 : -1;
 
-      const isFullA = (a.capacity > 0 && (a.registered || 0) >= a.capacity);
-      const isFullB = (b.capacity > 0 && (b.registered || 0) >= b.capacity);
-      if (isFullA !== isFullB) return isFullA ? 1 : -1;
+      // بررسی تداخل زمانی ساعت کلاس با دروس انتخابی
+      const conflictA = getCourseTimeConflict(a) !== null;
+      const conflictB = getCourseTimeConflict(b) !== null;
+      if (conflictA !== conflictB) return conflictA ? 1 : -1;
 
+      const capA = a.capacity || 30;
       const regA = a.registered || 0;
-      const regB = b.registered || 0;
-      if (regA !== regB) return regB - regA;
+      const remA = Math.max(0, capA - regA);
+      const isFullA = remA === 0;
+      const isUrgentA = !isFullA && (remA <= 8 || regA >= 20);
 
-      return a.name.localeCompare(b.name, 'fa');
+      const capB = b.capacity || 30;
+      const regB = b.registered || 0;
+      const remB = Math.max(0, capB - regB);
+      const isFullB = remB === 0;
+      const isUrgentB = !isFullB && (remB <= 8 || regB >= 20);
+
+      const getTier = (urgent, full) => {
+        if (urgent) return 1;
+        if (!full) return 2;
+        return 3;
+      };
+
+      const tierA = getTier(isUrgentA, isFullA);
+      const tierB = getTier(isUrgentB, isFullB);
+      if (tierA !== tierB) return tierA - tierB;
+
+      // در سطح شکار فوری: اولویت قطعی با درسی است که صندلی کمتری مانده (مثلا ۱ صندلی قبل از ۵ صندلی)
+      if (tierA === 1) {
+        if (remA !== remB) return remA - remB;
+        return regB - regA;
+      }
+      // در سطح باز: کمترین صندلی باقیمانده
+      if (tierA === 2) {
+        if (remA !== remB) return remA - remB;
+        return regB - regA;
+      }
+      return regB - regA;
     });
 
     // ۵. رندر کارت‌های دروس عمومی
@@ -1157,12 +1219,13 @@
       const isLocked = isClusterLocked(course.cluster);
       const isPrereqOk = isCoursePrereqMet(course);
       const canTermAdd = canAddGeneralCourseInCurrentTerm(course);
+      const timeConflict = !isSelected ? getCourseTimeConflict(course) : null;
 
       const cap = course.capacity || 0;
       const reg = course.registered || 0;
       const isFull = cap > 0 && reg >= cap;
       const remaining = Math.max(0, cap - reg);
-      const isUrgent = !isFull && cap > 0 && (reg >= 20 || remaining <= 7);
+      const isUrgent = !isFull && cap > 0 && (reg >= 20 || remaining <= 8);
 
       let capacityBadge = '';
       if (isFull) {
@@ -1186,6 +1249,8 @@
         statusActionBtn = '<button class="card-action-btn disabled" disabled title="طبق چارت ابتدا باید اندیشه اسلامی ۱ را پاس کرده باشید">پیش‌نیاز اندیشه ۱ ⚠️</button>';
       } else if (!canTermAdd.allowed) {
         statusActionBtn = `<button class="card-action-btn disabled" disabled title="${canTermAdd.reason}">سقف معارف پر است 🚫</button>`;
+      } else if (timeConflict) {
+        statusActionBtn = `<button class="card-action-btn conflict-blocked" data-action="conflict-blocked" title="تداخل کلاسی با درس «${timeConflict.conflictingCourse.name}»">⛔ تداخل کلاسی</button>`;
       } else if (isFull) {
         statusActionBtn = '<button class="card-action-btn add full-capacity-add" data-action="add" title="امیدوار باش انصرافی بده برداری">+ افزودن (امید به انصرافی)</button>';
       } else if (isUrgent) {
@@ -1198,7 +1263,7 @@
       const genderLabel = course.gender === 'خانم' ? '👩 خواهران' : (course.gender === 'آقا' ? '👨 برادران' : 'مختلط');
 
       const card = document.createElement('div');
-      card.className = `catalog-card ${isSelected ? 'selected' : ''} ${(isLocked || !isPrereqOk) ? 'disabled-card' : ''}`;
+      card.className = `catalog-card ${isSelected ? 'selected' : ''} ${timeConflict ? 'has-time-conflict' : ''} ${(isLocked || !isPrereqOk) ? 'disabled-card' : ''}`;
 
       const sessionSummary = (course.sessions || []).map(s => `${s.day} ${toPersianDigits(s.time)}`).join('، ');
       const examSummary = course.exam && course.exam.date
@@ -1214,6 +1279,7 @@
             <span class="badge general-gender-badge ${genderBadgeClass}">${genderLabel}</span>
             ${capacityBadge}
             ${statusBadge}
+            ${timeConflict ? '<span class="badge danger-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 800;">⛔ تداخل زمانی</span>' : ''}
             <span class="badge primary">${toPersianDigits(course.units)} واحد</span>
           </div>
         </div>
@@ -1222,6 +1288,11 @@
           <span>🔢 کد: ${toPersianDigits(course.code)}</span>
           <button class="btn-quick-copy" data-code="${course.code}" title="کپی کد این درس برای گلستان">📋 کپی کد</button>
         </div>
+        ${timeConflict ? `
+          <div class="card-time-conflict-banner">
+            ⛔ تداخل کلاسی: ${timeConflict.day} ساعت ${toPersianDigits(timeConflict.time)} با درس «${timeConflict.conflictingCourse.name}»
+          </div>
+        ` : ''}
         <div class="card-footer">
           <div style="display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.72rem; color: var(--text-secondary);">
             <span>🕒 زمان: ${sessionSummary || 'بدون زمان کلاسی'}</span>
@@ -1245,7 +1316,7 @@
         if (e.target.closest('button')) {
           e.stopPropagation();
           const action = e.target.getAttribute('data-action');
-          if (action === 'add') addCourse(course);
+          if (action === 'add' || action === 'conflict-blocked') addCourse(course);
           else if (action === 'remove') removeCourse(course.id);
           return;
         }
@@ -1356,6 +1427,8 @@
         }
       }
 
+      const timeConflict = !isSelected && isAllowed ? getCourseTimeConflict(course) : null;
+
       card.innerHTML = `
         <div class="card-top">
           <div class="card-title">${course.name}</div>
@@ -1363,6 +1436,7 @@
             ${isSelected ? '<span class="badge selected-badge">✅ در برنامه شما</span>' : ''}
             ${priorityBadge}
             ${restrictionBadge}
+            ${timeConflict ? '<span class="badge danger-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35);">⛔ تداخل زمانی</span>' : ''}
             <span class="badge primary">${toPersianDigits(course.units)} واحد</span>
           </div>
         </div>
@@ -1371,6 +1445,11 @@
           <span>🔢 کد: ${toPersianDigits(course.code)}</span>
           <button class="btn-quick-copy" data-code="${course.code}" title="کپی کد این درس برای گلستان">📋 کپی کد</button>
         </div>
+        ${timeConflict ? `
+          <div class="card-time-conflict-banner" style="font-size: 0.74rem; color: #f87171; background: rgba(239, 68, 68, 0.08); padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); margin: 0.3rem 0; border: 1px dashed rgba(239, 68, 68, 0.3);">
+            ⛔ تداخل کلاسی: ${timeConflict.day} ساعت ${toPersianDigits(timeConflict.time)} با «${timeConflict.conflictingCourse.name}»
+          </div>
+        ` : ''}
         <div class="card-footer">
           <span>🕒 زمان: ${sessionSummary || 'بدون زمان کلاسی'}</span>
           <div>
@@ -1378,6 +1457,8 @@
               <button class="card-action-btn disabled" disabled title="دست نزن؛ این درس ارث پدری ترم‌بالایی‌های فسیل‌شده‌ست">دست نزن (ارث ترم‌بالایی‌ها)</button>
             ` : isSelected ? `
               <button class="card-action-btn remove" data-action="remove">حذف ✕</button>
+            ` : timeConflict ? `
+              <button class="card-action-btn conflict-blocked" data-action="conflict-blocked" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); cursor: not-allowed; font-weight: 800;" title="تداخل کلاسی با درس «${timeConflict.conflictingCourse.name}»">⛔ تداخل کلاسی</button>
             ` : `
               <button class="card-action-btn add" data-action="add">افزودن +</button>
             `}
@@ -1396,7 +1477,7 @@
         if (e.target.closest('button')) {
           e.stopPropagation();
           const action = e.target.getAttribute('data-action');
-          if (action === 'add') handleAddCourseAttempt(course);
+          if (action === 'add' || action === 'conflict-blocked') handleAddCourseAttempt(course);
           else if (action === 'remove') removeCourse(course.id);
           return;
         }
@@ -1889,7 +1970,117 @@
       }
     }
 
-    // ۲. رندر نوار فیلتر گرایش‌ها (Cluster Filter Pills)
+    // ۲. پیشنهاد هوشمند بدون تداخل برای بخش اختصاصی
+    const recsWrap = document.getElementById('generalDedicatedRecsWrap');
+    if (recsWrap) {
+      recsWrap.innerHTML = '';
+      if (!isGeneralRawMode && currentGenerals.length < 2 && !(currentTheology.length >= 1 && passedGeneralCourses.includes('danesh_khanevadeh'))) {
+        const recs = getSmartGeneralRecommendations();
+        if (recs.length > 0) {
+          const recBox = document.createElement('div');
+          recBox.className = 'general-recommendations-box';
+          
+          const displayRecs = [];
+          const seenCourses = new Set();
+          for (const r of recs) {
+            const key = `${r.name}_${(r.sessions || []).map(s => s.day + s.time).join('_')}`;
+            if (!seenCourses.has(key)) {
+              seenCourses.add(key);
+              displayRecs.push(r);
+            }
+            if (displayRecs.length >= 6) break;
+          }
+
+          recBox.innerHTML = `
+            <div class="general-rec-head">
+              <span class="general-rec-title">
+                <span>✨ پیشنهادهای هوشمند متناسب با جاخالی‌های هفتگی شما</span>
+              </span>
+              <span class="general-rec-badge">${toPersianDigits(displayRecs.length)} گزینه بدون تداخل کلاسی</span>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 0.65rem;">
+              این دروس عمومی دقیقاً در ساعات خالی برنامه کلاسی هفتگی شما قرار دارند و ظرفیت آن‌ها در حال تکمیل است (اولویت شکار صندلی):
+            </p>
+            <div class="general-rec-cards-scroll">
+              ${displayRecs.map(rc => {
+                const sessStr = (rc.sessions || []).map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' | ');
+                const examStr = rc.exam && rc.exam.date ? `${toPersianDigits(rc.exam.date)} (${toPersianDigits(rc.exam.time)})` : 'نامشخص';
+                
+                const cap = rc.capacity || 0;
+                const reg = rc.registered || 0;
+                const isFull = cap > 0 && reg >= cap;
+                const remaining = Math.max(0, cap - reg);
+                const isUrgent = !isFull && cap > 0 && (reg >= 20 || remaining <= 8);
+
+                let capBadge = `<span class="badge" style="font-size: 0.65rem; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-secondary);">👥 ${toPersianDigits(reg)}/${toPersianDigits(cap)}</span>`;
+                if (isFull) {
+                  capBadge = `<span class="badge danger-tag" style="font-size: 0.65rem; background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.35);">🔴 تکمیل</span>`;
+                } else if (isUrgent) {
+                  capBadge = `<span class="badge warning-tag" style="font-size: 0.65rem; background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35);">⚡ شکار (${toPersianDigits(remaining)} صندلی مانده)</span>`;
+                }
+
+                let btnHtml = `
+                  <button type="button" class="btn btn-primary btn-sm btn-dedicated-rec-add" data-id="${rc.id}" style="font-size: 0.76rem; padding: 0.25rem 0.65rem;">
+                    + افزودن به برنامه
+                  </button>
+                `;
+                if (isFull) {
+                  btnHtml = `
+                    <button type="button" class="btn btn-sm btn-dedicated-rec-add full-capacity-add" data-id="${rc.id}" style="font-size: 0.73rem; padding: 0.25rem 0.55rem;" title="امیدوار باش انصرافی بده برداری">
+                      + امید به انصرافی
+                    </button>
+                  `;
+                } else if (isUrgent) {
+                  btnHtml = `
+                    <button type="button" class="btn btn-sm btn-dedicated-rec-add urgent-hunt-add" data-id="${rc.id}" style="font-size: 0.75rem; padding: 0.25rem 0.65rem; background: #f59e0b; color: #000; font-weight: 800; border: none;" title="شکار سریع در گلستان">
+                      ⚡ شکار فوری
+                    </button>
+                  `;
+                }
+
+                return `
+                  <div class="rec-course-card">
+                    <div>
+                      <div class="rec-card-top">
+                        <span class="rec-card-name">${rc.name}</span>
+                        <span class="badge general-cluster-badge" style="font-size: 0.65rem;">${getClusterTitle(rc.cluster)}</span>
+                      </div>
+                      <div class="rec-card-meta">
+                        <div>👨‍🏫 استاد: <strong>${formatInstructor(rc.instructor)}</strong></div>
+                        <div>📝 آزمون: ${examStr}</div>
+                        <div style="margin-top: 0.25rem;">${capBadge}</div>
+                      </div>
+                      <div class="rec-card-fit-slot">
+                        <span>🕒 جاخالی مناسب: ${sessStr}</span>
+                      </div>
+                    </div>
+                    <div style="margin-top: 0.4rem; display: flex; justify-content: flex-end;">
+                      ${btnHtml}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+
+          recBox.querySelectorAll('.btn-dedicated-rec-add').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const cid = parseInt(btn.getAttribute('data-id'), 10);
+              const found = window.GENERAL_COURSES_DATA.find(c => c.id === cid);
+              if (found) {
+                const added = addCourse(found);
+                if (added) renderDedicatedGeneralSection();
+              }
+            });
+          });
+
+          recsWrap.appendChild(recBox);
+        }
+      }
+    }
+
+    // ۳. رندر نوار فیلتر گرایش‌ها (Cluster Filter Pills)
     const filtersContainer = document.getElementById('generalDedicatedClusterFilters');
     if (filtersContainer) {
       filtersContainer.innerHTML = '';
@@ -1921,7 +2112,7 @@
       });
     }
 
-    // ۳. رندر کارت‌های دروس عمومی بهینه‌شده
+    // ۴. رندر کارت‌های دروس عمومی بهینه‌شده
     renderDedicatedGeneralCards();
   }
 
@@ -1945,15 +2136,47 @@
     });
 
     // مرتب‌سازی الگوریتم شکار:
-    // ۱. دروس در شرف پر شدن (ظرفیت رو به اتمام)
-    // ۲. دروس تکمیل ظرفیت (امید به انصرافی)
-    // ۳. سایر دروس
+    // ۱. دروس بدون تداخل زمانی ساعت کلاس در اولویت بالاترند
+    // ۲. در میان دروس بدون تداخل، اولویت با دروس رو به اتمام (کمترین صندلی باقیمانده برای شکار فوری)
+    // ۳. سپس دروس با ظرفیت باز و در نهایت تکمیل ظرفیت
     validGenerals.sort((a, b) => {
-      const aFull = (a.registered || 0) >= (a.capacity || 30);
-      const bFull = (b.registered || 0) >= (b.capacity || 30);
-      if (aFull && !bFull) return 1;
-      if (!aFull && bFull) return -1;
-      return (b.registered || 0) - (a.registered || 0);
+      const conflictA = getCourseTimeConflict(a) !== null;
+      const conflictB = getCourseTimeConflict(b) !== null;
+      if (conflictA !== conflictB) return conflictA ? 1 : -1;
+
+      const capA = a.capacity || 30;
+      const regA = a.registered || 0;
+      const remA = Math.max(0, capA - regA);
+      const isFullA = remA === 0;
+      const isUrgentA = !isFullA && (remA <= 8 || regA >= 20);
+
+      const capB = b.capacity || 30;
+      const regB = b.registered || 0;
+      const remB = Math.max(0, capB - regB);
+      const isFullB = remB === 0;
+      const isUrgentB = !isFullB && (remB <= 8 || regB >= 20);
+
+      const getTier = (urgent, full) => {
+        if (urgent) return 1;
+        if (!full) return 2;
+        return 3;
+      };
+
+      const tierA = getTier(isUrgentA, isFullA);
+      const tierB = getTier(isUrgentB, isFullB);
+      if (tierA !== tierB) return tierA - tierB;
+
+      // در سطح شکار فوری: اولویت قطعی با کمترین صندلی باقیمانده (۱ صندلی قبل از ۵ صندلی)
+      if (tierA === 1) {
+        if (remA !== remB) return remA - remB;
+        return regB - regA;
+      }
+      // در سطح باز: کمترین صندلی باقیمانده
+      if (tierA === 2) {
+        if (remA !== remB) return remA - remB;
+        return regB - regA;
+      }
+      return regB - regA;
     });
 
     if (validGenerals.length === 0) {
@@ -1969,11 +2192,12 @@
 
     validGenerals.forEach(course => {
       const isSelected = selectedCourses.some(sc => sc.id === course.id);
+      const timeConflict = !isSelected ? getCourseTimeConflict(course) : null;
       const isFull = (course.registered || 0) >= (course.capacity || 30);
       const isUrgent = !isFull && ((course.registered || 0) >= 20 || ((course.capacity || 30) - (course.registered || 0)) <= 7);
 
       const card = document.createElement('div');
-      card.className = `course-card general-card ${isSelected ? 'selected' : ''} ${isFull ? 'full-capacity' : ''} ${isUrgent ? 'urgent-hunt' : ''}`;
+      card.className = `course-card general-card ${isSelected ? 'selected' : ''} ${timeConflict ? 'has-time-conflict' : ''} ${isFull ? 'full-capacity' : ''} ${isUrgent ? 'urgent-hunt' : ''}`;
 
       const sessionText = (course.sessions || []).map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' | ') || 'ساعت نامشخص';
       const examText = course.exam ? `${toPersianDigits(course.exam.date)} ساعت ${toPersianDigits(course.exam.time)}` : 'نامشخص';
@@ -1991,12 +2215,18 @@
             <span class="course-code">${toPersianDigits(course.code)}</span>
             <button class="btn-quick-copy" title="کپی سریع کد برای بهستان">📋</button>
             ${isSelected ? '<span class="badge selected-badge">✅ در برنامه</span>' : ''}
+            ${timeConflict ? '<span class="badge danger-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35);">⛔ تداخل زمانی</span>' : ''}
             <span class="badge primary">${toPersianDigits(course.units || 2)} واحد</span>
             <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">${getClusterTitle(course.cluster)}</span>
             ${huntBadge}
           </div>
           <h3 class="course-name">${course.name}</h3>
         </div>
+        ${timeConflict ? `
+          <div class="card-time-conflict-banner" style="font-size: 0.74rem; color: #f87171; background: rgba(239, 68, 68, 0.08); padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); margin: 0.35rem 0; border: 1px dashed rgba(239, 68, 68, 0.3);">
+            ⛔ تداخل کلاسی: ${timeConflict.day} ساعت ${toPersianDigits(timeConflict.time)} با درس «${timeConflict.conflictingCourse.name}»
+          </div>
+        ` : ''}
         <div class="card-body">
           <div class="course-meta">
             <span>👨‍🏫 استاد: <strong>${formatInstructor(course.instructor)}</strong></span>
@@ -2017,11 +2247,14 @@
         <div class="card-footer" style="margin-top: 0.75rem;">
           ${isSelected 
             ? `<button class="btn btn-outline btn-sm" data-action="remove" style="color: var(--danger-text); border-color: var(--danger-border); width: 100%;">حذف از برنامه ✕</button>`
-            : (isFull 
-                ? `<button class="btn btn-outline btn-sm full-capacity-add" data-action="add" style="width: 100%; border-color: #ef4444; color: #f87171;">+ افزودن (امید به انصرافی)</button>`
-                : (isUrgent
-                    ? `<button class="btn btn-primary btn-sm urgent-hunt-add" data-action="add" style="width: 100%; background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 800;">⚡ شکار فوری +</button>`
-                    : `<button class="btn btn-primary btn-sm" data-action="add" style="width: 100%;">افزودن به برنامه +</button>`
+            : (timeConflict
+                ? `<button class="btn btn-sm btn-conflict-blocked" data-action="conflict-blocked" style="width: 100%; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); cursor: not-allowed; font-weight: 800;" title="تداخل زمانی با درس «${timeConflict.conflictingCourse.name}»">⛔ تداخل کلاسی (غیرقابل اخذ)</button>`
+                : (isFull 
+                    ? `<button class="btn btn-outline btn-sm full-capacity-add" data-action="add" style="width: 100%; border-color: #ef4444; color: #f87171;">+ افزودن (امید به انصرافی)</button>`
+                    : (isUrgent
+                        ? `<button class="btn btn-primary btn-sm urgent-hunt-add" data-action="add" style="width: 100%; background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 800;">⚡ شکار فوری +</button>`
+                        : `<button class="btn btn-primary btn-sm" data-action="add" style="width: 100%;">افزودن به برنامه +</button>`
+                      )
                   )
               )
           }
@@ -2039,7 +2272,7 @@
         if (e.target.closest('button')) {
           e.stopPropagation();
           const action = e.target.getAttribute('data-action');
-          if (action === 'add') {
+          if (action === 'add' || action === 'conflict-blocked') {
             const added = addCourse(course);
             if (added) renderDedicatedGeneralCards();
           } else if (action === 'remove') {

@@ -4809,6 +4809,51 @@ html[data-desktop-view="general"] .general-courses-section {
   }
 }
 
+/* ==========================================================================
+   طراحی وضعیت‌های تداخل کلاسی و منع اخذ درس (Conflict UI)
+   ========================================================================== */
+.card-time-conflict-banner {
+  font-size: 0.74rem;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px dashed rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.32rem 0.55rem;
+  margin: 0.35rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.catalog-card.has-time-conflict,
+.course-card.has-time-conflict {
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  background: linear-gradient(to bottom, rgba(239, 68, 68, 0.03), transparent) !important;
+}
+
+.catalog-card.has-time-conflict:hover,
+.course-card.has-time-conflict:hover {
+  border-color: rgba(239, 68, 68, 0.55) !important;
+}
+
+.card-action-btn.conflict-blocked,
+.btn-conflict-blocked {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+  cursor: not-allowed !important;
+  font-weight: 800 !important;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.card-action-btn.conflict-blocked:hover,
+.btn-conflict-blocked:hover {
+  background: rgba(239, 68, 68, 0.22) !important;
+  border-color: rgba(239, 68, 68, 0.7) !important;
+}
+
 /* Print Friendly Styles */
 @media print {
   .app-header, .guide-board-container, .sidebar-catalog, .bottom-inspector, .view-toggle, .btn, .search-box, .filter-tags, .site-footer, .floating-selected-container, .app-modal {
