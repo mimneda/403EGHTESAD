@@ -246,6 +246,7 @@
           <button class="filter-chip" data-filter="term5">🌟 اولویت ۱ (ترم ۵)</button>
           <button class="filter-chip" data-filter="elective">🎯 اولویت ۲ (اختیاری)</button>
           <button class="filter-chip" data-filter="other">📚 اولویت ۳ (سایر)</button>
+          <button class="filter-chip general-filter-chip" data-filter="general">🏛️ دروس عمومی (معارف)</button>
           <button class="filter-chip" data-filter="selected">✅ انتخاب‌شده‌ها</button>
         </div>
       </div>
@@ -458,6 +459,46 @@
     </div>
   </div>
 
+  <!-- مودال ثبت کارنامه و دروس پاس‌شده عمومی (معارف) طبق چارت مصوب -->
+  <div id="generalPassedModal" class="app-modal" style="display: none; z-index: 10000;">
+    <div class="modal-card general-passed-modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="generalPassedModalTitle">📋 کارنامه و دروس پاس‌شده عمومی (چارت معارف)</h3>
+          <span class="modal-subtitle">دروسی که در ترم‌های گذشته پاس کرده‌اید را تیک بزنید تا سقف گرایش‌ها و پیش‌نیازها اعمال شود:</span>
+        </div>
+        <button id="closeGeneralPassedBtn" class="modal-close-btn" title="بستن پنجره">✕</button>
+      </div>
+
+      <!-- تعیین جنسیت دانشجو -->
+      <div class="general-gender-selector-box">
+        <span class="gender-box-label">👤 جنسیت شما (جهت نمایش گروه‌های مجاز خواهران/برادران):</span>
+        <div class="gender-btn-group">
+          <button type="button" class="gender-select-btn active" data-gender="خانم" id="genderBtnFemale">
+            <span>👩 دانشجوی دختر (خواهران)</span>
+          </button>
+          <button type="button" class="gender-select-btn" data-gender="آقا" id="genderBtnMale">
+            <span>👨 دانشجوی پسر (برادران)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- محتوای خوشه‌ها و چک‌لیست دروس -->
+      <div class="modal-body general-passed-modal-body" id="generalPassedBody">
+        <!-- با جاوااسکریپت بر اساس چارت مصوب رندر می‌شود -->
+      </div>
+
+      <div class="general-passed-modal-footer">
+        <div class="passed-summary-text" id="passedSummaryText">
+          <span>مجموع دروس پاس‌شده: <strong id="passedUnitsCount">۰</strong> از ۱۰ واحد معارف</span>
+        </div>
+        <button id="saveGeneralPassedBtn" class="btn btn-primary">
+          💾 ذخیره کارنامه و به‌روزرسانی دروس
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- پانویس سایت -->
   <footer class="site-footer">
     <div class="footer-content footer-bold">
@@ -543,6 +584,7 @@
 
   <!-- اسکریپت‌ها -->
   <script src="courses-data.js"></script>
+  <script src="general-courses-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
