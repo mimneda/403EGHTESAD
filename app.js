@@ -1659,8 +1659,8 @@
       bodyEl.innerHTML = `
         <div class="wizard-step-pane">
           <div class="wizard-step-guide">
-            <strong>💡 چرا تعیین جنسیت اولین گام است؟</strong>
-            دروس عمومی و معارف در دانشگاه به تفکیک خواهران و برادران ارائه می‌شوند. با انتخاب جنسیت خود، گروه‌های نامربوط از فهرست کدهای شما حذف شده تا وقتتان سر کدهای غیرمجاز در سامانه گلستان هدر نرود.
+            <strong>👤 لطفاً جنسیت خود را مشخص کنید:</strong>
+            گروه‌های درسی بر اساس جنسیت فیلتر می‌شوند؛ لطفاً مشخص کنید تا فقط دروس مجاز برای شما نمایش داده شوند.
           </div>
           <div class="wizard-gender-grid">
             <div class="wizard-gender-card ${studentGender === 'خانم' ? 'active' : ''}" id="wizardGenderFemale" data-gender="خانم">
@@ -1711,8 +1711,8 @@
       bodyEl.innerHTML = `
         <div class="wizard-step-pane">
           <div class="wizard-step-guide">
-            <strong>💡 قوانین گرایش‌های مبانی نظری اسلام و اخلاق اسلامی:</strong>
-            از گرایش مبانی نظری حداکثر ۴ واحد (اندیشه ۱ پیش‌نیاز اندیشه ۲ است) و از گرایش اخلاق اسلامی فقط ۱ درس (۲ واحد) در کل دوره کارشناسی مجاز است. دروسی که در ترم‌های گذشته پاس کرده‌اید را علامت بزنید:
+            <strong>📋 ثبت دروس پاس‌شده (مبانی و اخلاق):</strong>
+            از لیست زیر دروسی که قبلاً پاس کردی رو تیک بزن تا دستیار درسی که قبلاً پاس کردی رو دوباره بهت نمایش نده:
           </div>
           <div class="clusters-checklist-grid">
             ${renderClusterChecklistCard('mabani')}
@@ -1726,8 +1726,8 @@
       bodyEl.innerHTML = `
         <div class="wizard-step-pane">
           <div class="wizard-step-guide">
-            <strong>💡 قوانین گرایش‌های انقلاب، تاریخ و منابع اسلامی:</strong>
-            از هر یک از این ۳ گرایش، حداکثر ۱ درس (۲ واحد) در کل دوره کارشناسی مجاز است. درس <strong>«اندیشه سیاسی امام خمینی»</strong> نیز فعال شده و حق انتخاب آن برای ثبت سابقه در اختیار شماست:
+            <strong>📋 ثبت دروس پاس‌شده (انقلاب، تاریخ و منابع):</strong>
+            از لیست زیر دروسی که قبلاً پاس کردی رو تیک بزن تا دستیار درسی که قبلاً پاس کردی رو دوباره بهت نمایش نده:
           </div>
           <div class="clusters-checklist-grid">
             ${renderClusterChecklistCard('enghelab')}
@@ -1742,8 +1742,8 @@
       bodyEl.innerHTML = `
         <div class="wizard-step-pane">
           <div class="wizard-step-guide">
-            <strong>💡 قانون درس دانش خانواده و جمعیت:</strong>
-            درس «دانش خانواده و جمعیت» ۲ واحد الزامی مستقل است و سهمیه اخذ آن در کنار دروس معارف اسلامی مجاز می‌باشد. آیا در ترم‌های قبل این درس را گذرانده‌اید؟
+            <strong>👨‍👩‍👧 وضعیت درس دانش خانواده:</strong>
+            از لیست زیر اگر درس دانش خانواده و جمعیت رو قبلاً پاس کردی تیک بزن تا دستیار درسی که قبلاً پاس کردی رو دوباره بهت نمایش نده:
           </div>
           <div class="clusters-checklist-grid">
             ${renderClusterChecklistCard('khanevadeh')}
