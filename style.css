@@ -1841,9 +1841,12 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border-color);
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.28);
-  transform: translateY(110%);
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(120%);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s, visibility 0.2s;
   padding: 1rem 1.5rem;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 [data-theme="dark"] .bottom-inspector {
@@ -1852,6 +1855,9 @@ body {
 
 .bottom-inspector.active {
   transform: translateY(0);
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .inspector-inner {
@@ -2577,7 +2583,7 @@ body.inspector-open .floating-selected-container:not(.is-dragged) {
   height: 62px;
   background: var(--bg-surface);
   border-top: 1px solid var(--border-color);
-  z-index: 120;
+  z-index: 200;
   padding: 0 0.5rem;
   padding-bottom: env(safe-area-inset-bottom, 0);
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
@@ -2837,7 +2843,11 @@ body.inspector-open .floating-selected-container:not(.is-dragged) {
   }
 
   .bottom-inspector {
-    bottom: 58px !important;
+    bottom: 0 !important;
+  }
+
+  .bottom-inspector.active {
+    bottom: 62px !important;
   }
 
   .site-footer {
@@ -3009,7 +3019,11 @@ html[data-device="mobile"] body {
 }
 
 [data-device="mobile"] .bottom-inspector {
-  bottom: 58px !important;
+  bottom: 0 !important;
+}
+
+[data-device="mobile"] .bottom-inspector.active {
+  bottom: 62px !important;
 }
 
 [data-device="mobile"] .selected-courses-table-wrap {
