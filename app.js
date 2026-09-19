@@ -1672,12 +1672,40 @@
   }
 
   // --- راه‌اندازی برنامه ---
-  document.addEventListener('DOMContentLoaded', () => {
-    const savedDevice = localStorage.getItem('device_view_mode');
-    if (savedDevice) deviceMode = savedDevice;
+  function bootApp() {
     loadState();
     initEvents();
     updateUI();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedDevice = localStorage.getItem('device_view_mode');
+
+    if (savedDevice) {
+      // کاربر قبلاً انتخاب کرده — مستقیم بوت
+      deviceMode = savedDevice;
+      bootApp();
+    } else {
+      // اولین بازدید — نمایش مودال انتخاب دستگاه
+      const modal = document.getElementById('deviceChoiceModal');
+      if (modal) {
+        modal.style.display = 'flex';
+
+        function chooseDevice(mode) {
+          deviceMode = mode;
+          localStorage.setItem('device_view_mode', mode);
+          modal.style.display = 'none';
+          bootApp();
+        }
+
+        document.getElementById('choiceDesktop').addEventListener('click', () => chooseDevice('desktop'));
+        document.getElementById('choiceMobile').addEventListener('click', () => chooseDevice('mobile'));
+      } else {
+        // fallback اگر مودال نبود
+        deviceMode = 'auto';
+        bootApp();
+      }
+    }
   });
 
 })();

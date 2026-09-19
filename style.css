@@ -2163,6 +2163,83 @@ body {
 }
 
 /* ==========================================================================
+   مودال انتخاب دستگاه (Device Choice Modal)
+   ========================================================================== */
+.device-choice-card {
+  max-width: 440px !important;
+  text-align: center !important;
+  padding: 2.5rem 2rem !important;
+  border-radius: var(--radius-xl) !important;
+  animation: modalPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.device-choice-emoji {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.5rem;
+}
+
+.device-choice-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.device-choice-desc {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+}
+
+.device-choice-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.device-choice-btn {
+  padding: 0.8rem 1.4rem !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-md) !important;
+  min-width: 160px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast) !important;
+}
+
+.device-choice-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.device-choice-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .device-choice-card {
+    margin: 0.5rem !important;
+    padding: 1.8rem 1.2rem !important;
+    max-width: calc(100vw - 1rem) !important;
+  }
+  .device-choice-emoji { font-size: 2.2rem; }
+  .device-choice-title { font-size: 1.1rem; }
+  .device-choice-desc { font-size: 0.82rem; }
+  .device-choice-buttons { flex-direction: column; gap: 0.5rem; }
+  .device-choice-btn { width: 100%; min-width: auto; }
+}
+
+/* ==========================================================================
    طراحی اختصاصی برای نسخه موبایل (Dedicated Mobile Web-App Experience)
    فعال بر روی تمام صفحات زیر ۹۰۰ پیکسل یا با انتخاب حالت موبایل
    ========================================================================== */

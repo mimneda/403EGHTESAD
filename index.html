@@ -15,6 +15,27 @@
 </head>
 <body>
 
+  <!-- پنجره انتخاب نوع دستگاه — نمایش فقط در اولین بازدید -->
+  <div id="deviceChoiceModal" class="app-modal" style="display:none; z-index: 9999;">
+    <div class="modal-card device-choice-card">
+      <div class="device-choice-emoji">🖥️ 📱</div>
+      <h2 class="device-choice-title">سلام! با چه دستگاهی اومدی؟</h2>
+      <p class="device-choice-desc">
+        پیشنهاد صادقانه: با <strong>لپتاپ</strong> بیا، تجربه‌ات ۱۰ برابر بهتره.
+        <br>ولی اگه الان فقط <strong>گوشی</strong> دستته… خب، مجبوریم بسازیمت 😏
+      </p>
+      <div class="device-choice-buttons">
+        <button id="choiceDesktop" class="btn btn-primary device-choice-btn">
+          💻 لپتاپ / کامپیوتر
+        </button>
+        <button id="choiceMobile" class="btn btn-outline device-choice-btn">
+          📱 گوشی موبایل
+        </button>
+      </div>
+      <p class="device-choice-hint">بعداً هم می‌تونی از دکمه 📱/💻 توی هدر عوضش کنی</p>
+    </div>
+  </div>
+
   <!-- هدر اصلی و نوار آمار -->
   <header class="app-header">
     <div class="header-container">
