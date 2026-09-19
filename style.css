@@ -3402,10 +3402,22 @@ body.inspector-open .floating-selected-container:not(.is-dragged) {
   }
 
   .logo-text h1 {
-    font-size: 0.82rem !important;
+    font-size: 0.88rem !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
+
+  .logo-text .app-subtitle {
+    font-size: 0.62rem !important;
+    color: var(--text-muted) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
   }
 
   .desktop-only-sub,
@@ -3604,9 +3616,21 @@ html[data-device="mobile"] body {
 }
 
 [data-device="mobile"] .logo-text h1 {
-  font-size: 0.82rem !important;
+  font-size: 0.88rem !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+
+[data-device="mobile"] .logo-text .app-subtitle {
+  font-size: 0.62rem !important;
+  color: var(--text-muted) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
 }
 
 [data-device="mobile"] .header-actions {
