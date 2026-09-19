@@ -242,11 +242,16 @@
 
     // قاعده انحصار استاد: دانشجو نمیتواند دو درس هم‌نام را با دو استاد بردارد
     const courseNameClean = normalizeName(course.name);
-    const existingSameName = selectedCourses.find(c => normalizeName(c.name) === courseNameClean);
+    const baseCode = (course.code || '').split('_')[0];
+    const existingSameName = selectedCourses.find(c => {
+      const cBase = (c.code || '').split('_')[0];
+      return (baseCode && cBase === baseCode) || normalizeName(c.name) === courseNameClean;
+    });
     if (existingSameName) {
       return {
+        allowed: false,
         conflictType: 'SAME_COURSE_DIFFERENT_PROF',
-        reason: `دو تا استاد برای یه درس؟ مگه مسابقه شانس گلستانه؟ سیستم وفاداری می‌طلبه؛ اول قبلی («${formatInstructor(existingSameName.instructor)}») رو بنداز دور بعد بیا سراغ این.`
+        reason: `دو تا استاد برای یه درس؟ مگه مسابقه شانس گلستانه؟ درس «${course.name}» قبلاً با استاد «${formatInstructor(existingSameName.instructor)}» برداشته شده و طبق قوانین آموزشی امکان اخذ همزمان با دو استاد وجود ندارد.`
       };
     }
 
@@ -320,6 +325,35 @@
     }
   }
 
+  // --- تنظیم هوشمند موقعیت ویجت شناور هنگام باز/بست پنل مشخصات درس ---
+  function adjustFloatingWidgetForInspector(open) {
+    const container = document.getElementById('floatingSelectedContainer');
+    const inspectorEl = document.getElementById('bottomInspector');
+    if (!container) return;
+
+    if (open) {
+      document.body.classList.add('inspector-open');
+      const inspectorHeight = (inspectorEl && inspectorEl.offsetHeight > 0) ? inspectorEl.offsetHeight : 85;
+      const rect = container.getBoundingClientRect();
+      const overlapThreshold = window.innerHeight - inspectorHeight - 15;
+
+      // اگر ویجت در ناحیه پایینی صفحه (جایی که با اینسپکتور یا دکمه ضربدر تداخل دارد) قرار گرفته:
+      if (rect.bottom > overlapThreshold) {
+        const liftDistance = Math.round(rect.bottom - overlapThreshold + 12);
+        container.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease';
+        container.style.transform = `translateY(-${liftDistance}px)`;
+        container.dataset.inspectorLifted = 'true';
+      }
+    } else {
+      document.body.classList.remove('inspector-open');
+      if (container.dataset.inspectorLifted === 'true') {
+        container.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease';
+        container.style.transform = '';
+        delete container.dataset.inspectorLifted;
+      }
+    }
+  }
+
   // --- باز و بسته کردن پنل مشخصات پایین صفحه (Inspector) ---
   function openInspector(course) {
     activeInspectorCourse = course;
@@ -328,6 +362,7 @@
     if (inspectorEl) {
       inspectorEl.classList.add('active');
     }
+    adjustFloatingWidgetForInspector(true);
   }
 
   function closeInspector() {
@@ -335,6 +370,7 @@
     if (inspectorEl) {
       inspectorEl.classList.remove('active');
     }
+    adjustFloatingWidgetForInspector(false);
   }
 
   // --- رندر پنل مشخصات کامل درس در پایین صفحه ---
@@ -603,7 +639,31 @@
           const matchingSessions = daySessions.filter(item => sessionMatchesSlot(item.session.time, slot));
 
           if (matchingSessions.length === 0) {
-            contentEl.innerHTML = `<div class="slot-empty" title="لحظاتی نادر از آرامش در طول هفته">بدون کلاس</div>`;
+            const emptyEl = document.createElement('div');
+            emptyEl.className = 'slot-empty interactive-slot-empty';
+            emptyEl.setAttribute('role', 'button');
+            emptyEl.setAttribute('tabindex', '0');
+            emptyEl.setAttribute('aria-label', `انتخاب درس برای روز ${day} ساعت ${slot.label}`);
+            emptyEl.title = `برای مشاهده درس‌های قابل اخذ و پیشنهاد هوشمند در روز ${day} ساعت ${slot.label} کلیک کنید`;
+            emptyEl.innerHTML = `
+              <div class="slot-empty-content">
+                <div class="slot-empty-action">
+                  <span class="slot-empty-icon">➕</span>
+                  <span>انتخاب درس در این ساعت</span>
+                </div>
+                <div class="slot-empty-subtext">مشاهده گزینه‌ها و پیشنهاد هوشمند</div>
+              </div>
+            `;
+
+            emptyEl.addEventListener('click', () => openSlotCoursesModal(day, slot));
+            emptyEl.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openSlotCoursesModal(day, slot);
+              }
+            });
+
+            contentEl.appendChild(emptyEl);
           } else {
             matchingSessions.forEach(({ course, session }) => {
               const hasClassConflict = matchingSessions.length > 1;
@@ -725,6 +785,27 @@
 
               cell.appendChild(itemEl);
             });
+          } else {
+            const matrixEmpty = document.createElement('div');
+            matrixEmpty.className = 'matrix-empty-slot';
+            matrixEmpty.setAttribute('role', 'button');
+            matrixEmpty.setAttribute('tabindex', '0');
+            matrixEmpty.setAttribute('aria-label', `انتخاب درس روز ${day} ساعت ${slot.label}`);
+            matrixEmpty.title = `کلیک کنید: مشاهده گزینه‌ها و پیشنهاد هوشمند روز ${day} ساعت ${slot.label}`;
+            matrixEmpty.innerHTML = `
+              <span class="matrix-empty-plus">+</span>
+              <span class="matrix-empty-label">انتخاب درس</span>
+            `;
+
+            matrixEmpty.addEventListener('click', () => openSlotCoursesModal(day, slot));
+            matrixEmpty.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openSlotCoursesModal(day, slot);
+              }
+            });
+
+            cell.appendChild(matrixEmpty);
           }
 
           row.appendChild(cell);
@@ -1024,6 +1105,300 @@
 
   function closeSwitchGroupModal() {
     const modal = document.getElementById('switchGroupModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  // --- مدیریت مودال انتخاب درس برای ساعت‌های خالی برنامه هفتگی ---
+  function openSlotCoursesModal(day, slot) {
+    if (!day || !slot) return;
+    const modal = document.getElementById('emptySlotModal');
+    const titleEl = document.getElementById('emptySlotTitle');
+    const subtitleEl = document.getElementById('emptySlotSubtitle');
+    const bodyEl = document.getElementById('emptySlotBody');
+    if (!modal || !bodyEl) return;
+
+    if (titleEl) {
+      titleEl.innerHTML = `🎯 درس‌های قابل ارائه در این ساعت`;
+    }
+
+    // استخراج دروس مجاز برای ورودی ۴۰۳ که در این روز و ساعت جلسه دارند
+    const candidates = allCourses.filter(course => {
+      if (!course.isEntry403Allowed) return false;
+      return (course.sessions || []).some(s => s.day === day && sessionMatchesSlot(s.time, slot));
+    });
+
+    if (subtitleEl) {
+      subtitleEl.innerHTML = `
+        <div class="slot-modal-tags">
+          <span class="slot-modal-tag primary">📅 روز ${day}</span>
+          <span class="slot-modal-tag primary">⏰ ساعت ${slot.label}</span>
+          <span class="slot-modal-tag gold">⚡ ${toPersianDigits(candidates.length)} درس موجود</span>
+        </div>
+      `;
+    }
+
+    bodyEl.innerHTML = '';
+
+    if (candidates.length === 0) {
+      bodyEl.innerHTML = `
+        <div style="text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🕊️</div>
+          <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-primary); margin-bottom: 0.5rem;">
+            در روز ${day} ساعت ${slot.label} هیچ کلاسی برای دانشجویان ورودی ۴۰۳ ارائه نشده است.
+          </div>
+          <p style="font-size: 0.85rem; line-height: 1.6; max-width: 440px; margin: 0 auto;">
+            این بازه زمانی می‌تواند برای استراحت، مطالعه، کار در کتابخانه دانشکده یا هماهنگی سایر امور هفتگی مورد استفاده قرار گیرد.
+          </p>
+        </div>
+      `;
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      return;
+    }
+
+    // تحلیل وضعیت هر درس کاندید و ارزیابی تداخل‌ها
+    const evaluatedCandidates = candidates.map(c => {
+      const isExactSelected = selectedCourses.some(sc => sc.id === c.id);
+      const cBase = (c.code || '').split('_')[0];
+      const cNorm = normalizeName(c.name);
+      const takenWithOtherProf = selectedCourses.find(sc => sc.id !== c.id && (((sc.code || '').split('_')[0] === cBase) || normalizeName(sc.name) === cNorm));
+
+      // بررسی تداخل کلاسی در سایر روزها/ساعات
+      const classConflicts = [];
+      (c.sessions || []).forEach(sA => {
+        selectedCourses.forEach(sc => {
+          if (sc.id === c.id) return;
+          (sc.sessions || []).forEach(sB => {
+            if (sA.day === sB.day) {
+              const [startA, endA] = (sA.time || '').split('-');
+              const [startB, endB] = (sB.time || '').split('-');
+              if (timesOverlap(startA, endA, startB, endB)) {
+                classConflicts.push({ day: sA.day, time: sA.time, otherCourse: sc.name });
+              }
+            }
+          });
+        });
+      });
+
+      // بررسی تداخل امتحانی
+      let examConflict = null;
+      if (c.exam && c.exam.date) {
+        selectedCourses.forEach(sc => {
+          if (sc.id === c.id) return;
+          if (sc.exam && sc.exam.date === c.exam.date) {
+            const [sA, eA] = (c.exam.time || '').split('-');
+            const [sB, eB] = (sc.exam.time || '').split('-');
+            if (sA && sB && timesOverlap(sA, eA, sB, eB)) {
+              examConflict = { type: 'exact', otherCourse: sc.name, date: c.exam.date, time: c.exam.time };
+            } else if (!examConflict) {
+              examConflict = { type: 'sameday', otherCourse: sc.name, date: c.exam.date };
+            }
+          }
+        });
+      }
+
+      // محاسبه امتیاز برای پیشنهاد هوشمند
+      let score = 0;
+      const isEligibleForRec = !isExactSelected && !takenWithOtherProf && classConflicts.length === 0 && (!examConflict || examConflict.type !== 'exact');
+
+      if (isEligibleForRec) {
+        score += 100;
+        if (c.category === 'term5' || c.priority === 1) score += 100;
+        if (c.category === 'elective' || c.priority === 2) score += 50;
+        if (!examConflict) score += 30;
+        const currentTotal = selectedCourses.reduce((sum, item) => sum + (item.units || 0), 0);
+        const maxUnits = isHonorStudent ? 24 : 20;
+        if (currentTotal + (c.units || 0) <= maxUnits) score += 40;
+      }
+
+      return {
+        course: c,
+        isExactSelected,
+        takenWithOtherProf,
+        classConflicts,
+        examConflict,
+        isEligibleForRec,
+        score
+      };
+    });
+
+    // پیدا کردن بهترین پیشنهاد هوشمند
+    let bestRec = null;
+    const recCandidates = evaluatedCandidates.filter(item => item.isEligibleForRec);
+    if (recCandidates.length > 0) {
+      recCandidates.sort((a, b) => b.score - a.score);
+      bestRec = recCandidates[0];
+    }
+
+    // ۱. نمایش کارت پیشنهاد هوشمند
+    if (bestRec) {
+      const recCard = document.createElement('div');
+      recCard.className = 'slot-recommended-card';
+
+      const recCourse = bestRec.course;
+      const recSessions = (recCourse.sessions || []).map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' و ');
+      const recExam = recCourse.exam && recCourse.exam.date
+        ? `${toPersianDigits(recCourse.exam.date)} (ساعت ${toPersianDigits(recCourse.exam.time)})`
+        : 'تاریخ امتحان اعلام نشده';
+
+      let reasonText = '💡 دلیل پیشنهاد: تطابق کامل با بازه زمانی خالی شما بدون هیچ‌گونه تداخل زمانی یا امتحانی با دروس فعلی.';
+      if (recCourse.category === 'term5' || recCourse.priority === 1) {
+        reasonText = '💡 دلیل پیشنهاد: درس اصلی و تخصصی چارت ترم ۵ (ورودی ۴۰۳) • بدون تداخل کلاسی و بدون تداخل ساعت امتحان با برنامه فعلی شما.';
+      } else if (recCourse.category === 'elective') {
+        reasonText = '💡 دلیل پیشنهاد: درس اختیاری معتبر چارت • تطابق زمانی عالی با ساعت خالی و بدون تداخل امتحانی.';
+      }
+
+      recCard.innerHTML = `
+        <div class="src-badge">⭐ پیشنهاد هوشمند سامانه برای این ساعت</div>
+        <div class="src-title-row">
+          <div>
+            <h4 class="src-name">${recCourse.name}</h4>
+            <div class="src-prof">استاد: <strong>${formatInstructor(recCourse.instructor)}</strong></div>
+          </div>
+          <span class="scc-code-pill">کد: ${toPersianDigits(recCourse.code)}</span>
+        </div>
+        <div class="src-meta-chips">
+          <span class="src-meta-chip">📚 ${toPersianDigits(recCourse.units || 0)} واحد</span>
+          <span class="src-meta-chip">🕒 ${recSessions}</span>
+          <span class="src-meta-chip">📝 آزمون: ${recExam}</span>
+          <span class="src-meta-chip" style="color: var(--success-text);">🛡️ کاملاً بدون تداخل</span>
+        </div>
+        <div class="src-reason">${reasonText}</div>
+        <div class="src-action-row">
+          <button class="btn btn-outline btn-sm src-inspect-btn">🔍 جزییات کامل</button>
+          <button class="btn btn-primary btn-sm src-add-btn">⚡ افزودن فوری به برنامه</button>
+        </div>
+      `;
+
+      const addBtn = recCard.querySelector('.src-add-btn');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          if (addCourse(recCourse)) {
+            closeEmptySlotModal();
+          }
+        });
+      }
+
+      const inspBtn = recCard.querySelector('.src-inspect-btn');
+      if (inspBtn) {
+        inspBtn.addEventListener('click', () => {
+          openInspector(recCourse);
+        });
+      }
+
+      bodyEl.appendChild(recCard);
+    }
+
+    // ۲. بخش لیست تمام گزینه‌های قابل ارائه
+    const sectionTitle = document.createElement('div');
+    sectionTitle.className = 'slot-candidates-section-title';
+    sectionTitle.innerHTML = `
+      <span>📚 تمام گزینه‌های ارائه شده در این ساعت (${toPersianDigits(candidates.length)} درس)</span>
+      <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: normal;">بر اساس چارت رسمی دانشکده</span>
+    `;
+    bodyEl.appendChild(sectionTitle);
+
+    const listContainer = document.createElement('div');
+    listContainer.className = 'slot-candidates-list';
+
+    evaluatedCandidates.forEach(({ course, isExactSelected, takenWithOtherProf, classConflicts, examConflict }) => {
+      const card = document.createElement('div');
+      card.className = `slot-candidate-card ${isExactSelected ? 'is-already-selected' : ''} ${takenWithOtherProf ? 'is-disabled-prof' : ''}`;
+
+      const sessionSummary = (course.sessions || []).map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' و ');
+      const examSummary = course.exam && course.exam.date
+        ? `${toPersianDigits(course.exam.date)} (ساعت ${toPersianDigits(course.exam.time)})`
+        : 'اعلام نشده';
+
+      let statusHtml = '';
+      if (isExactSelected) {
+        statusHtml = `<span style="color: var(--primary);">✓ این درس هم‌اکنون در برنامه هفتگی شما ثبت شده است.</span>`;
+      } else if (takenWithOtherProf) {
+        statusHtml = `<span style="color: var(--danger-text);">🚫 این درس قبلاً با استاد «${formatInstructor(takenWithOtherProf.instructor)}» انتخاب شده است. (طبق مقررات آموزشی اخذ همزمان یک درس با دو استاد مجاز نمی‌باشد)</span>`;
+      } else if (classConflicts.length > 0) {
+        statusHtml = `<span style="color: var(--danger-text);">⚠️ تداخل جلسه دوم: روز ${classConflicts[0].day} ساعت ${toPersianDigits(classConflicts[0].time)} با درس «${classConflicts[0].otherCourse}» تداخل دارد.</span>`;
+      } else if (examConflict && examConflict.type === 'exact') {
+        statusHtml = `<span style="color: var(--danger-text);">🚨 تداخل ساعت دقیق آزمون پایان‌ترم با درس «${examConflict.otherCourse}»</span>`;
+      } else if (examConflict && examConflict.type === 'sameday') {
+        statusHtml = `<span style="color: var(--warning-text);">⚠️ دو آزمون در یک روز: آزمون این درس همزمان با درس «${examConflict.otherCourse}» در یک روز است.</span>`;
+      } else {
+        statusHtml = `<span style="color: var(--success-text);">🛡️ تطابق زمانی کامل — بدون تداخل کلاسی یا امتحانی</span>`;
+      }
+
+      card.innerHTML = `
+        <div class="scc-head">
+          <div class="scc-name-wrap">
+            <span class="scc-title">${course.name}</span>
+            <span class="scc-instructor">استاد: <strong>${formatInstructor(course.instructor)}</strong></span>
+          </div>
+          <div style="display: flex; gap: 0.35rem; align-items: center;">
+            <span class="scc-code-pill">${toPersianDigits(course.units || 0)} واحد</span>
+            <span class="scc-code-pill">${toPersianDigits(course.code)}</span>
+          </div>
+        </div>
+        <div class="scc-details">
+          <div>🕒 جلسات هفتگی: <strong>${sessionSummary}</strong></div>
+          <div>📝 آزمون پایان‌ترم: <strong>${examSummary}</strong></div>
+          <div>👥 ظرفیت کلاس: <strong>${toPersianDigits(course.capacity || 25)} نفر</strong></div>
+          <div>🎯 گروه چارت: <strong>${course.category === 'term5' ? 'دروس اصلی ترم ۵' : (course.category === 'elective' ? 'اختیاری تخصصی' : 'عمومی / سایر')}</strong></div>
+        </div>
+        <div class="scc-conflict-status">${statusHtml}</div>
+        <div class="scc-actions">
+          <button class="btn btn-outline btn-sm btn-inspect-cand" data-id="${course.id}">🔍 جزییات</button>
+          ${isExactSelected
+            ? `<button class="btn btn-outline btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;">✓ در برنامه شماست</button>`
+            : (takenWithOtherProf
+                ? `<button class="btn btn-outline btn-sm btn-switch-prof-cand" style="color: var(--accent); border-color: var(--accent);" title="جابجایی استاد قبلی با این استاد" data-old-id="${takenWithOtherProf.id}" data-new-id="${course.id}">🔄 جابجایی به این استاد</button>
+                   <button class="btn btn-danger btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;" title="اخذ همزمان با دو استاد مجاز نیست">🚫 منع دو استاد</button>`
+                : `<button class="btn btn-primary btn-sm btn-add-cand" data-id="${course.id}">+ افزودن این درس</button>`
+              )
+          }
+        </div>
+      `;
+
+      const addBtn = card.querySelector('.btn-add-cand');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          if (addCourse(course)) {
+            closeEmptySlotModal();
+          }
+        });
+      }
+
+      const switchBtn = card.querySelector('.btn-switch-prof-cand');
+      if (switchBtn) {
+        switchBtn.addEventListener('click', () => {
+          const oldIdx = selectedCourses.findIndex(sc => sc.id === takenWithOtherProf.id);
+          if (oldIdx !== -1) {
+            selectedCourses[oldIdx] = course;
+            saveState();
+            updateUI();
+            closeEmptySlotModal();
+            showToast(`استاد درس «${course.name}» با موفقیت به ${formatInstructor(course.instructor)} تغییر یافت.`, 'success');
+          }
+        });
+      }
+
+      const inspBtn = card.querySelector('.btn-inspect-cand');
+      if (inspBtn) {
+        inspBtn.addEventListener('click', () => {
+          openInspector(course);
+        });
+      }
+
+      listContainer.appendChild(card);
+    });
+
+    bodyEl.appendChild(listContainer);
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEmptySlotModal() {
+    const modal = document.getElementById('emptySlotModal');
     if (!modal) return;
     modal.style.display = 'none';
     document.body.style.overflow = '';
@@ -1560,11 +1935,7 @@
       });
     }
 
-    // دکمه شناور دروس انتخابی و بازکردن مودال کدهای گلستان
-    const floatingBtn = document.getElementById('floatingSelectedBtn');
-    if (floatingBtn) {
-      floatingBtn.addEventListener('click', openSelectedModal);
-    }
+    // دکمه شناور دروس انتخابی به صورت هوشمند در تابع initDraggableFloatingSelected مدیریت می‌شود
 
     const closeModalBtn = document.getElementById('closeModalBtn');
     const closeModalFooterBtn = document.getElementById('closeModalFooterBtn');
@@ -1577,6 +1948,11 @@
     const switchGroupBackdrop = document.getElementById('switchGroupBackdrop');
     if (closeSwitchGroupBtn) closeSwitchGroupBtn.addEventListener('click', closeSwitchGroupModal);
     if (switchGroupBackdrop) switchGroupBackdrop.addEventListener('click', closeSwitchGroupModal);
+
+    const closeEmptySlotBtn = document.getElementById('closeEmptySlotBtn');
+    const emptySlotBackdrop = document.getElementById('emptySlotBackdrop');
+    if (closeEmptySlotBtn) closeEmptySlotBtn.addEventListener('click', closeEmptySlotModal);
+    if (emptySlotBackdrop) emptySlotBackdrop.addEventListener('click', closeEmptySlotModal);
 
     const copyGolestanBtn = document.getElementById('copyGolestanBtn');
     const golestanCodesBox = document.getElementById('golestanCodesBox');
@@ -1596,6 +1972,7 @@
       if (e.key === 'Escape') {
         closeSelectedModal();
         closeSwitchGroupModal();
+        closeEmptySlotModal();
         closeInspector();
       }
     });
@@ -1672,9 +2049,207 @@
   }
 
   // --- راه‌اندازی برنامه ---
+  // --- قابلیت شناور و جابجایی دکمه دروس انتخابی من (Draggable Widget) ---
+  function initDraggableFloatingSelected() {
+    const container = document.getElementById('floatingSelectedContainer');
+    const handle = document.getElementById('floatingDragHandle');
+    const btn = document.getElementById('floatingSelectedBtn');
+    if (!container) return;
+
+    let isDragging = false;
+    let hasMoved = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+
+    const resetBtn = document.getElementById('floatingResetBtn');
+
+    // تابع بازنشانی موقعیت ویجت به پیش‌فرض
+    function resetFloatingPosition() {
+      localStorage.removeItem('floating_selected_pos');
+      container.style.left = '';
+      container.style.top = '';
+      container.style.bottom = '';
+      container.style.right = '';
+      container.style.transform = '';
+      delete container.dataset.inspectorLifted;
+      container.classList.remove('is-dragged');
+      if (document.body.classList.contains('inspector-open')) {
+        adjustFloatingWidgetForInspector(true);
+      }
+      showToast('موقعیت دکمه شناور به گوشه پایین صفحه بازنشانی شد.', 'info');
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        resetFloatingPosition();
+      });
+    }
+
+    // بارگذاری موقعیت ذخیره‌شده از LocalStorage
+    try {
+      const savedPos = localStorage.getItem('floating_selected_pos');
+      if (savedPos) {
+        const { left, top } = JSON.parse(savedPos);
+        if (typeof left === 'number' && typeof top === 'number') {
+          const maxLeft = Math.max(10, window.innerWidth - (container.offsetWidth || 230) - 10);
+          const maxTop = Math.max(10, window.innerHeight - (container.offsetHeight || 52) - 10);
+          const clampedLeft = Math.min(Math.max(10, left), maxLeft);
+          const clampedTop = Math.min(Math.max(10, top), maxTop);
+
+          container.style.left = `${clampedLeft}px`;
+          container.style.top = `${clampedTop}px`;
+          container.style.bottom = 'auto';
+          container.style.right = 'auto';
+          container.classList.add('is-dragged');
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading saved floating position:', e);
+    }
+
+    function onPointerDown(e) {
+      if (e.target.closest('#floatingResetBtn')) return;
+      if (e.type === 'mousedown' && e.button !== 0) return;
+
+      isDragging = true;
+      hasMoved = false;
+
+      // ریست ترانسفورم موقت بالا رفتن جهت ثبت موقعیت دقیق
+      if (container.dataset.inspectorLifted === 'true') {
+        container.style.transform = '';
+        delete container.dataset.inspectorLifted;
+      }
+
+      const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+      const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+
+      startX = clientX;
+      startY = clientY;
+
+      const rect = container.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+
+      container.classList.add('is-dragging');
+
+      document.addEventListener('mousemove', onPointerMove, { passive: false });
+      document.addEventListener('mouseup', onPointerUp);
+      document.addEventListener('touchmove', onPointerMove, { passive: false });
+      document.addEventListener('touchend', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+
+      const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+      const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+
+      const dx = clientX - startX;
+      const dy = clientY - startY;
+
+      if (!hasMoved && Math.hypot(dx, dy) > 4) {
+        hasMoved = true;
+      }
+
+      if (hasMoved) {
+        if (e.cancelable) e.preventDefault();
+
+        const containerWidth = container.offsetWidth || 230;
+        const containerHeight = container.offsetHeight || 52;
+
+        const maxLeft = Math.max(10, window.innerWidth - containerWidth - 10);
+        const maxTop = Math.max(10, window.innerHeight - containerHeight - 10);
+
+        const newLeft = Math.min(Math.max(10, startLeft + dx), maxLeft);
+        const newTop = Math.min(Math.max(10, startTop + dy), maxTop);
+
+        container.style.left = `${newLeft}px`;
+        container.style.top = `${newTop}px`;
+        container.style.bottom = 'auto';
+        container.style.right = 'auto';
+        container.classList.add('is-dragged');
+      }
+    }
+
+    function onPointerUp() {
+      if (!isDragging) return;
+      isDragging = false;
+      container.classList.remove('is-dragging');
+
+      document.removeEventListener('mousemove', onPointerMove);
+      document.removeEventListener('mouseup', onPointerUp);
+      document.removeEventListener('touchmove', onPointerMove);
+      document.removeEventListener('touchend', onPointerUp);
+
+      if (hasMoved) {
+        try {
+          const rect = container.getBoundingClientRect();
+          localStorage.setItem('floating_selected_pos', JSON.stringify({
+            left: Math.round(rect.left),
+            top: Math.round(rect.top)
+          }));
+        } catch (e) {
+          console.warn('Error saving floating pos:', e);
+        }
+
+        // اگر اینسپکتور باز است، بررسی مجدد برای بالا بردن در موقعیت جدید
+        if (document.body.classList.contains('inspector-open')) {
+          adjustFloatingWidgetForInspector(true);
+        }
+      }
+    }
+
+    // اتصال رویدادهای Drag به کل کانتینر
+    container.addEventListener('mousedown', onPointerDown);
+    container.addEventListener('touchstart', onPointerDown, { passive: true });
+
+    // هندل کلیک دکمه (فقط اگر جابجایی انجام نشده باشد)
+    if (btn) {
+      btn.addEventListener('click', (e) => {
+        if (hasMoved) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        openSelectedModal();
+      });
+    }
+
+    // بازنشانی به موقعیت پیش‌فرض با دوبار کلیک روی دستگیره یا نگه داشتن
+    if (handle) {
+      handle.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        resetFloatingPosition();
+      });
+    }
+
+    // بررسی محدوده صفحه در زمان تغییر اندازه مرورگر
+    window.addEventListener('resize', () => {
+      if (!container.classList.contains('is-dragged')) return;
+      const rect = container.getBoundingClientRect();
+      const maxLeft = Math.max(10, window.innerWidth - rect.width - 10);
+      const maxTop = Math.max(10, window.innerHeight - rect.height - 10);
+
+      const clampedLeft = Math.min(Math.max(10, rect.left), maxLeft);
+      const clampedTop = Math.min(Math.max(10, rect.top), maxTop);
+
+      container.style.left = `${clampedLeft}px`;
+      container.style.top = `${clampedTop}px`;
+
+      if (document.body.classList.contains('inspector-open')) {
+        adjustFloatingWidgetForInspector(true);
+      }
+    });
+  }
+
   function bootApp() {
     loadState();
     initEvents();
+    initDraggableFloatingSelected();
     updateUI();
   }
 

@@ -245,6 +245,12 @@
           <button class="mobile-day-chip" data-day="چهارشنبه">چهارشنبه</button>
         </div>
 
+        <!-- بنر راهنمای انتخاب از ساعت‌های خالی هفتگی -->
+        <div class="schedule-guide-hint">
+          <span class="guide-hint-icon">💡</span>
+          <span class="guide-hint-text"><strong>راهنمای انتخاب هوشمند:</strong> روی هر ساعت خالی در برنامه کلیک کنید تا تمام درس‌های قابل ارائه به همراه <strong>پیشنهاد هوشمند</strong> آن ساعت نمایش داده شود.</span>
+        </div>
+
         <!-- نمای روزبه‌روز (دقیقاً بر اساس ساختار درخواستی: شنبه تا چهارشنبه، ۱۲ تا ۱۳ استراحت خاکستری) -->
         <div id="dailyScheduleFlow" class="daily-schedule-flow">
           <!-- با جاوااسکریپت پر می‌شود -->
@@ -297,8 +303,12 @@
 
   </main>
 
-  <!-- دکمه شناور دروس انتخابی من (دسترسی سریع و کپی کدهای گلستان) -->
-  <aside id="floatingSelectedContainer" class="floating-selected-container">
+  <!-- دکمه شناور دروس انتخابی من (با قابلیت جابجایی و درگ در صفحه و دسترسی سریع به کدهای گلستان) -->
+  <aside id="floatingSelectedContainer" class="floating-selected-container" title="برای جابجایی در صفحه بکشید (Drag) یا برای مشاهده دروس کلیک کنید">
+    <div id="floatingDragHandle" class="floating-drag-handle" title="دستگیره جابجایی (برای حرکت دادن دکمه بکشید • برای بازنشانی روی ↺ بزنید)">
+      <span class="drag-dots">⠿</span>
+      <button id="floatingResetBtn" class="floating-reset-btn" title="بازنشانی موقعیت به گوشه صفحه">↺</button>
+    </div>
     <button id="floatingSelectedBtn" class="floating-selected-btn" title="مشاهده لیست دروس انتخاب‌شده، حذف دروس و دریافت فوری کدهای گلستان">
       <span class="floating-btn-icon">📋</span>
       <span class="floating-btn-label">دروس انتخابی من:</span>
@@ -390,6 +400,23 @@
         <button id="closeSwitchGroupBtn" class="modal-close-btn" title="بستن پنجره">✕</button>
       </div>
       <div class="modal-body" id="switchGroupBody">
+        <!-- با جاوااسکریپت پر می‌شود -->
+      </div>
+    </div>
+  </div>
+
+  <!-- مودال اختصاصی انتخاب درس از ساعت‌های خالی برنامه هفتگی -->
+  <div id="emptySlotModal" class="app-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="emptySlotTitle">
+    <div class="modal-backdrop" id="emptySlotBackdrop"></div>
+    <div class="modal-card modal-card-md">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 id="emptySlotTitle">🎯 انتخاب درس برای این ساعت خالی</h3>
+          <span class="modal-subtitle" id="emptySlotSubtitle">مشاهده تمام گزینه‌های قابل اخذ به همراه پیشنهاد هوشمند سامانه</span>
+        </div>
+        <button id="closeEmptySlotBtn" class="modal-close-btn" title="بستن پنجره">✕</button>
+      </div>
+      <div class="modal-body" id="emptySlotBody">
         <!-- با جاوااسکریپت پر می‌شود -->
       </div>
     </div>
