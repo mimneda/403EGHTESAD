@@ -89,6 +89,10 @@
         const ids = JSON.parse(raw);
         selectedCourses = allCourses.filter(c => ids.includes(c.id) && c.isEntry403Allowed);
       }
+      const savedHonor = localStorage.getItem('is_honor_student');
+      if (savedHonor !== null) {
+        isHonorStudent = savedHonor === 'true';
+      }
     } catch (e) {
       console.warn('LocalStorage load error:', e);
       selectedCourses = [];
@@ -1876,11 +1880,12 @@
     if (honorBtn) {
       honorBtn.addEventListener('click', () => {
         isHonorStudent = !isHonorStudent;
+        localStorage.setItem('is_honor_student', isHonorStudent ? 'true' : 'false');
         updateUI();
         showToast(
           isHonorStudent
-            ? 'سقف ۲۴ واحد فعال شد. رسماً تصمیم گرفتید خواب و سلامت روان رو تا اسفند تعطیل کنید.'
-            : 'سقف ۲۰ واحد: برگشتید به مدار عقلانیت و بقا؛ حداقل فرصت می‌کنید نفس بکشید.',
+            ? 'سقف مجاز اخذ واحد به ۲۴ واحد (معدل الف) تغییر یافت.'
+            : 'سقف مجاز اخذ واحد به ۲۰ واحد (دانشجوی عادی) تغییر یافت.',
           'info'
         );
       });
@@ -2255,28 +2260,54 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     const savedDevice = localStorage.getItem('device_view_mode');
+    const savedHonor = localStorage.getItem('is_honor_student');
 
     if (savedDevice) {
-      // کاربر قبلاً انتخاب کرده — مستقیم بوت
+      // کاربر قبلاً تنظیمات اولیه را ثبت کرده — اعمال مستقیم و بوت
       deviceMode = savedDevice;
+      if (savedHonor !== null) {
+        isHonorStudent = savedHonor === 'true';
+      }
       bootApp();
     } else {
-      // اولین بازدید — نمایش مودال انتخاب دستگاه
+      // اولین بازدید — نمایش پنجره پیکربندی اولیه (دستگاه و وضعیت تحصیلی)
       const modal = document.getElementById('deviceChoiceModal');
       if (modal) {
         modal.style.display = 'flex';
 
-        function chooseDevice(mode) {
+        // پیش‌فرض: سقف ۲۴ واحد (معدل الف) فعال است
+        let selectedHonor = true;
+        const btnHonor24 = document.getElementById('choiceHonor24');
+        const btnHonor20 = document.getElementById('choiceHonor20');
+
+        if (btnHonor24 && btnHonor20) {
+          btnHonor24.addEventListener('click', () => {
+            selectedHonor = true;
+            btnHonor24.classList.add('active');
+            btnHonor20.classList.remove('active');
+          });
+
+          btnHonor20.addEventListener('click', () => {
+            selectedHonor = false;
+            btnHonor20.classList.add('active');
+            btnHonor24.classList.remove('active');
+          });
+        }
+
+        function finalizeSetup(mode) {
           deviceMode = mode;
+          isHonorStudent = selectedHonor;
           localStorage.setItem('device_view_mode', mode);
+          localStorage.setItem('is_honor_student', selectedHonor ? 'true' : 'false');
           modal.style.display = 'none';
           bootApp();
         }
 
-        document.getElementById('choiceDesktop').addEventListener('click', () => chooseDevice('desktop'));
-        document.getElementById('choiceMobile').addEventListener('click', () => chooseDevice('mobile'));
+        const choiceDeskBtn = document.getElementById('choiceDesktop');
+        const choiceMobBtn = document.getElementById('choiceMobile');
+        if (choiceDeskBtn) choiceDeskBtn.addEventListener('click', () => finalizeSetup('desktop'));
+        if (choiceMobBtn) choiceMobBtn.addEventListener('click', () => finalizeSetup('mobile'));
       } else {
-        // fallback اگر مودال نبود
         deviceMode = 'auto';
         bootApp();
       }
