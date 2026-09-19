@@ -1199,6 +1199,7 @@
         <div class="card-top">
           <div class="card-title">${course.name}</div>
           <div class="card-badges">
+            ${isSelected ? '<span class="badge selected-badge">✅ در برنامه شما</span>' : ''}
             <span class="badge general-cluster-badge">${getClusterTitle(course.cluster)}</span>
             <span class="badge general-gender-badge ${genderBadgeClass}">${genderLabel}</span>
             ${capacityBadge}
@@ -1349,6 +1350,7 @@
         <div class="card-top">
           <div class="card-title">${course.name}</div>
           <div class="card-badges">
+            ${isSelected ? '<span class="badge selected-badge">✅ در برنامه شما</span>' : ''}
             ${priorityBadge}
             ${restrictionBadge}
             <span class="badge primary">${toPersianDigits(course.units)} واحد</span>
@@ -1426,21 +1428,43 @@
   function setDesktopView(viewMode) {
     desktopViewMode = viewMode;
     const desktopBtn = document.getElementById('desktopGeneralCoursesBtn');
+    const modeSwitchMajor = document.getElementById('modeSwitchMajor');
+    const modeSwitchGeneral = document.getElementById('modeSwitchGeneral');
+
     if (viewMode === 'general') {
       document.documentElement.setAttribute('data-desktop-view', 'general');
       if (desktopBtn) {
-        desktopBtn.innerHTML = '<span>📖 بازگشت به دروس تخصصی</span>';
+        desktopBtn.innerHTML = '<span class="btn-hunter-icon">📖</span><span class="btn-hunter-text">بازگشت به دروس تخصصی</span>';
         desktopBtn.className = 'btn btn-outline btn-sm desktop-only-btn btn-general-hunter-desktop';
+      }
+      if (modeSwitchMajor && modeSwitchGeneral) {
+        modeSwitchGeneral.classList.add('active');
+        modeSwitchMajor.classList.remove('active');
       }
       renderDedicatedGeneralSection();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       document.documentElement.removeAttribute('data-desktop-view');
       if (desktopBtn) {
-        desktopBtn.innerHTML = '<span>🏛️ انتخاب دروس عمومی</span>';
+        desktopBtn.innerHTML = '<span class="btn-hunter-icon">🏛️</span><span class="btn-hunter-text">انتخاب دروس عمومی</span><span class="btn-hunter-badge">✨ هوشمند</span>';
         desktopBtn.className = 'btn btn-primary btn-sm desktop-only-btn btn-general-hunter-desktop';
       }
+      if (modeSwitchMajor && modeSwitchGeneral) {
+        modeSwitchMajor.classList.add('active');
+        modeSwitchGeneral.classList.remove('active');
+      }
       renderCatalog();
+    }
+  }
+
+  function navigateToGeneralCourses() {
+    if (isDeviceMobile()) {
+      switchMobileTab('general');
+    } else {
+      setDesktopView('general');
+      if (localStorage.getItem('general_wizard_completed') !== 'true') {
+        openGeneralPassedModal(1);
+      }
     }
   }
 
@@ -1880,6 +1904,7 @@
           <div class="course-code-wrap">
             <span class="course-code">${toPersianDigits(course.code)}</span>
             <button class="btn-quick-copy" title="کپی سریع کد برای بهستان">📋</button>
+            ${isSelected ? '<span class="badge selected-badge">✅ در برنامه</span>' : ''}
             <span class="badge primary">${toPersianDigits(course.units || 2)} واحد</span>
             <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">${getClusterTitle(course.cluster)}</span>
             ${huntBadge}
@@ -3289,12 +3314,40 @@
         if (desktopViewMode === 'general') {
           setDesktopView('catalog');
         } else {
-          setDesktopView('general');
-          if (localStorage.getItem('general_wizard_completed') !== 'true') {
-            openGeneralPassedModal(1);
-          }
+          navigateToGeneralCourses();
         }
       });
+    }
+
+    // سوئیچر دوگانه بالای کاتالوگ
+    const modeSwitchMajor = document.getElementById('modeSwitchMajor');
+    const modeSwitchGeneral = document.getElementById('modeSwitchGeneral');
+    if (modeSwitchMajor) {
+      modeSwitchMajor.addEventListener('click', () => {
+        if (isDeviceMobile()) switchMobileTab('catalog');
+        else setDesktopView('catalog');
+      });
+    }
+    if (modeSwitchGeneral) {
+      modeSwitchGeneral.addEventListener('click', navigateToGeneralCourses);
+    }
+
+    // دکمه دعوت اختصاصی در کارت بالای کاتالوگ
+    const btnCatalogGeneralCta = document.getElementById('btnCatalogGeneralCta');
+    if (btnCatalogGeneralCta) {
+      btnCatalogGeneralCta.addEventListener('click', navigateToGeneralCourses);
+    }
+
+    // دکمه عمومی در فوتر چارت پیشنهادی ترم ۵
+    const btnGuideBoardGeneral = document.getElementById('btnGuideBoardGeneral');
+    if (btnGuideBoardGeneral) {
+      btnGuideBoardGeneral.addEventListener('click', navigateToGeneralCourses);
+    }
+
+    // دکمه ورود به عمومی در بنر آنبوردینگ
+    const btnOnboardingOpenGeneral = document.getElementById('btnOnboardingOpenGeneral');
+    if (btnOnboardingOpenGeneral) {
+      btnOnboardingOpenGeneral.addEventListener('click', navigateToGeneralCourses);
     }
 
     // دکمه‌های داخل هیرو سکشن عمومی
@@ -3767,10 +3820,35 @@
     });
   }
 
+  function initOnboarding() {
+    const banner = document.getElementById('onboardingBanner');
+    const closeBtn = document.getElementById('closeOnboardingBtn');
+    if (!banner) return;
+
+    const isDismissed = localStorage.getItem('onboarding_dismissed');
+    if (isDismissed !== 'true') {
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateY(-8px)';
+        setTimeout(() => {
+          banner.style.display = 'none';
+        }, 250);
+        localStorage.setItem('onboarding_dismissed', 'true');
+      });
+    }
+  }
+
   function bootApp() {
     loadState();
     initEvents();
     initDraggableFloatingSelected();
+    initOnboarding();
     updateUI();
   }
 

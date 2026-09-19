@@ -11,12 +11,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.2">
 </head>
 <body>
 
   <!-- پنجره تنظیمات اولیه سامانه (انتخاب دستگاه و سقف واحد) — نمایش در اولین بازدید -->
   <div id="deviceChoiceModal" class="app-modal" style="display:none; z-index: 9999;">
+    <div class="modal-backdrop"></div>
     <div class="modal-card device-choice-card">
       <div class="device-choice-header">
         <div class="device-choice-icon">🏛️</div>
@@ -53,7 +54,7 @@
             <span class="setup-option-title">سقف ۲۰ واحد</span>
             <span class="setup-option-sub">سبک</span>
           </button>
-          <button type="button" id="choiceHonor24" class="setup-option-btn active" data-honor="true">
+          <button type="button" id="choiceHonor24" class="setup-option-btn active has-badge" data-honor="true">
             <span class="setup-option-badge">پیش‌فرض</span>
             <span class="setup-option-title">سقف ۲۴ واحد (آزاد)</span>
             <span class="setup-option-sub">سنگین</span>
@@ -108,7 +109,9 @@
 
       <div class="header-actions">
         <button id="desktopGeneralCoursesBtn" class="btn btn-primary btn-sm desktop-only-btn btn-general-hunter-desktop" title="انتخاب دروس عمومی و شکار صندلی گلستان">
-          <span>🏛️ انتخاب دروس عمومی</span>
+          <span class="btn-hunter-icon">🏛️</span>
+          <span class="btn-hunter-text">انتخاب دروس عمومی</span>
+          <span class="btn-hunter-badge">✨ هوشمند</span>
         </button>
         <button id="deviceModeToggleBtn" class="btn btn-outline btn-sm" title="تغییر حالت نمایش بین موبایل و دسکتاپ">
           <span id="deviceModeIcon">📱</span> <span id="deviceModeText">حالت موبایل</span>
@@ -125,6 +128,45 @@
       </div>
     </div>
   </header>
+
+  <!-- بنر آنبوردینگ: راهنمای شروع کار برای کاربران تازه‌وارد -->
+  <aside id="onboardingBanner" class="onboarding-banner" style="display: none;" aria-label="راهنمای سریع استفاده از سامانه">
+    <div class="onboarding-inner">
+      <div class="onboarding-header">
+        <div class="onboarding-title-wrap">
+          <span class="onboarding-badge-icon">🚀</span>
+          <h3 class="onboarding-title">راهنمای شروع سریع سامانه در ۳ گام:</h3>
+        </div>
+        <button id="closeOnboardingBtn" class="onboarding-close-btn" title="بستن راهنما">✕ متوجه شدم (بستن)</button>
+      </div>
+      <div class="onboarding-steps">
+        <div class="onboarding-step-card">
+          <div class="onboarding-step-num">۱</div>
+          <div class="onboarding-step-body">
+            <strong>📖 انتخاب دروس از لیست تخصصی</strong>
+            <p>از لیست دروس سمت راست، روی هر درس کلیک کنید و با دکمه «افزودن +» آن را به برنامه هفتگی بیاورید.</p>
+          </div>
+        </div>
+        <div class="onboarding-step-card highlight">
+          <div class="onboarding-step-num">۲</div>
+          <div class="onboarding-step-body">
+            <strong>🏛️ شکار هوشمند دروس عمومی</strong>
+            <p>دکمه سبز «انتخاب دروس عمومی» را بزنید تا دستیار هوشمند با توجه به قوانین معارف و ظرفیت‌ها راهنماییتان کند.</p>
+            <button type="button" class="btn-onboarding-cta" id="btnOnboardingOpenGeneral">
+              <span>🚀 ورود مستقیم به دستیار دروس عمومی</span>
+            </button>
+          </div>
+        </div>
+        <div class="onboarding-step-card">
+          <div class="onboarding-step-num">۳</div>
+          <div class="onboarding-step-body">
+            <strong>📋 پایش تداخل و ثبت در گلستان</strong>
+            <p>برنامه هفتگی و امتحانات را چک کنید؛ سپس با زدن «دروس انتخابی من» کدهای گلستان را یکجا کپی کنید.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- تابلو راهنما: چارت پیشنهادی ترم پنجم (ورودی ۴۰۳) -->
   <div class="guide-board-container">
@@ -213,11 +255,13 @@
           <strong>ترکیب تکمیل ترم ۵:</strong>
           <span>۱۴ واحد تخصصی اصلی بالا + تا ۱۰ واحد دروس اختیاری و عمومی = <strong>سقف ۲۰ الی ۲۴ واحد</strong></span>
         </div>
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
           <span class="guide-rule-pill">🎯 اولویت ۱: دروس اصلی چارت</span>
           <span class="guide-rule-pill">✨ اولویت ۲: اختیاری خوشه اصلی</span>
           <span class="guide-rule-pill">📚 اولویت ۳: سایر دروس مجاز</span>
-          <span class="guide-rule-pill" style="border-color: var(--danger-border); color: var(--danger-text);">🚫 دروس ماقبل ۴۰۲ یا اقتصادسنجی مجاز نیست</span>
+          <button type="button" class="btn-guide-board-general" id="btnGuideBoardGeneral" title="ورود مستقیم به دستیار انتخاب دروس عمومی و معارف">
+            <span>🏛️ ورود به دستیار دروس عمومی معارف (شکار صندلی)</span>
+          </button>
         </div>
       </div>
       </div> <!-- پایان guide-board-collapsible -->
@@ -230,11 +274,38 @@
     <!-- ستون کناری: فهرست دروس ارائه شده -->
     <aside class="sidebar-catalog">
       <div class="sidebar-header">
+        
+        <!-- سوئیچر دوگانه و برجسته برای دسترسی آنی به دستیار دروس عمومی -->
+        <div class="sidebar-mode-switcher" id="sidebarModeSwitcher">
+          <button type="button" class="sidebar-mode-tab active" id="modeSwitchMajor" data-mode="catalog" title="مشاهده کاتالوگ دروس تخصصی اقتصاد">
+            <span>📚 دروس تخصصی دانشکده</span>
+          </button>
+          <button type="button" class="sidebar-mode-tab general-mode-tab" id="modeSwitchGeneral" data-mode="general" title="ورود به دستیار هوشمند دروس عمومی و شکار صندلی">
+            <span>🏛️ دستیار دروس عمومی</span>
+            <span class="mode-tab-badge">✨ شکار صندلی</span>
+          </button>
+        </div>
+
         <div class="sidebar-title-row">
           <h2>
             <span>📖 کاتالوگ دروس ارائه شده</span>
           </h2>
           <span class="badge primary" id="catalogTotalCount">۵۶</span>
+        </div>
+
+        <!-- کارت ورودی ویژه دستیار عمومی در داخل کاتالوگ -->
+        <div class="catalog-general-cta-card" id="catalogGeneralCtaCard">
+          <div class="cg-cta-header">
+            <span class="cg-cta-badge">🎯 شکار صندلی‌های عمومی گلستان</span>
+            <span class="cg-cta-pill">معارف و خانواده</span>
+          </div>
+          <p class="cg-cta-text">
+            سهمیه ۲ درس عمومی این ترم (معارف + دانش خانواده) را با دستیار هوشمند و بر اساس تحلیل لحظه‌ای ظرفیت‌ها انتخاب کنید.
+          </p>
+          <button type="button" class="btn-catalog-general-cta" id="btnCatalogGeneralCta">
+            <span>🚀 ورود به دستیار انتخاب دروس عمومی</span>
+            <span class="cg-arrow">←</span>
+          </button>
         </div>
 
         <div class="search-box">
@@ -249,7 +320,7 @@
           <button class="filter-chip" data-filter="term5">🌟 اولویت ۱ (ترم ۵)</button>
           <button class="filter-chip" data-filter="elective">🎯 اولویت ۲ (اختیاری)</button>
           <button class="filter-chip" data-filter="other">📚 اولویت ۳ (سایر)</button>
-          <button class="filter-chip general-filter-chip" data-filter="general">🏛️ دروس عمومی (معارف)</button>
+          <button class="filter-chip general-filter-chip highlight-general-chip" data-filter="general">🏛️ دروس عمومی (شکار صندلی)</button>
           <button class="filter-chip" data-filter="selected">✅ انتخاب‌شده‌ها</button>
         </div>
       </div>
@@ -638,14 +709,15 @@
 
   <!-- نوار ناوبری پایین صفحه (مخصوص حالت موبایل) -->
   <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="ناوبری لمسی موبایل">
-    <button class="mobile-nav-item active" data-tab="catalog" title="فهرست دروس تخصصی">
+    <button class="mobile-nav-item active" data-tab="catalog" title="فهرست دروس تخصصی دانشکده">
       <span class="mn-icon">📖</span>
       <span class="mn-label">دروس</span>
       <span class="mn-badge" id="mnCatalogBadge">۵۶</span>
     </button>
     <button class="mobile-nav-item" data-tab="general" title="دروس عمومی و معارف (شکار صندلی)">
       <span class="mn-icon">🏛️</span>
-      <span class="mn-label">عمومی‌ها</span>
+      <span class="mn-label">عمومی</span>
+      <span class="mn-pulse-dot" title="دستیار شکار صندلی"></span>
       <span class="mn-badge" id="mnGeneralBadge" style="display: none;">۰</span>
     </button>
     <button class="mobile-nav-item" data-tab="schedule" title="برنامه هفتگی کلاس‌ها">
@@ -654,15 +726,15 @@
     </button>
     <button class="mobile-nav-item" data-tab="exams" title="تقویم امتحانات بهمن">
       <span class="mn-icon">📝</span>
-      <span class="mn-label">امتحانات</span>
+      <span class="mn-label">امتحان</span>
     </button>
     <button class="mobile-nav-item" data-tab="guide" title="چارت پیشنهادی ترم ۵">
       <span class="mn-icon">📌</span>
-      <span class="mn-label">چارت ۵</span>
+      <span class="mn-label">چارت</span>
     </button>
     <button class="mobile-nav-item primary-accent" data-tab="my-courses" title="مشاهده دروس انتخابی و کدهای گلستان">
       <span class="mn-icon">📋</span>
-      <span class="mn-label">دروس من</span>
+      <span class="mn-label">انتخابی</span>
       <span class="mn-badge accent" id="mnSelectedBadge">۰</span>
     </button>
   </nav>
@@ -671,8 +743,8 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- اسکریپت‌ها -->
-  <script src="courses-data.js"></script>
-  <script src="general-courses-data.js"></script>
-  <script src="app.js"></script>
+  <script src="courses-data.js?v=2.2"></script>
+  <script src="general-courses-data.js?v=2.2"></script>
+  <script src="app.js?v=2.2"></script>
 </body>
 </html>
