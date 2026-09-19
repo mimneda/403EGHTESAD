@@ -51,12 +51,12 @@
         <div class="setup-toggle-group">
           <button type="button" id="choiceHonor20" class="setup-option-btn" data-honor="false">
             <span class="setup-option-title">سقف ۲۰ واحد</span>
-            <span class="setup-option-sub">عقب‌نشینی تاکتیکی به نفع بقا و سلامت روان</span>
+            <span class="setup-option-sub">سبک</span>
           </button>
           <button type="button" id="choiceHonor24" class="setup-option-btn active" data-honor="true">
             <span class="setup-option-badge">پیش‌فرض</span>
             <span class="setup-option-title">سقف ۲۴ واحد (آزاد)</span>
-            <span class="setup-option-sub">باشه بتمن؛ بهمن‌ماه پای نمرات گریه کردی تقصیر سامانه نیست!</span>
+            <span class="setup-option-sub">سنگین</span>
           </button>
         </div>
       </div>
@@ -494,6 +494,28 @@
         </div>
         <button id="saveGeneralPassedBtn" class="btn btn-primary">
           💾 ذخیره کارنامه و به‌روزرسانی دروس
+        </button>
+      </div>
+    </div>
+  <!-- مودال استعلام و تایید پیش‌نیاز دروس اختیاری طبق بخشنامه آموزش -->
+  <div id="prereqConfirmModal" class="app-modal" style="display: none; z-index: 10001;">
+    <div class="modal-card prereq-confirm-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 id="prereqModalTitle">⚠️ استعلام گذراندن پیش‌نیاز درس</h3>
+          <span class="modal-subtitle" id="prereqModalSubtitle">بر اساس بخشنامه مصوب آموزش دانشکده اقتصاد</span>
+        </div>
+        <button id="closePrereqModalBtn" class="modal-close-btn" title="انصراف و بستن">✕</button>
+      </div>
+      <div class="modal-body prereq-confirm-body" id="prereqModalBody">
+        <!-- با جاوااسکریپت تزریق می‌شود -->
+      </div>
+      <div class="prereq-modal-footer">
+        <button type="button" id="prereqRejectBtn" class="btn btn-outline" style="color: var(--danger-text); border-color: var(--danger-border);">
+          ❌ خیر، پاس نکرده‌ام
+        </button>
+        <button type="button" id="prereqAcceptBtn" class="btn btn-primary" style="background: #10b981; border-color: #10b981;">
+          ✅ بله، پاس کرده‌ام (افزودن به برنامه)
         </button>
       </div>
     </div>

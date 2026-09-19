@@ -70,11 +70,11 @@
     return (name || '').replace(/\s+/g, ' ').trim();
   }
 
-  // اضافه کردن ایموجی تاج 👑 برای استاد نگین تاجی و استاد اکبری
+  // فرمت‌دهی اسامی اساتید (فقط استاد نگین تاجی زریر به نگین 👑 ای زریر تبدیل می‌شود)
   function formatInstructor(name) {
     if (!name) return 'نامشخص';
-    if (name.includes('نگين تاجي') || name.includes('نگین تاجی') || name.includes('اكبري') || name.includes('اکبری')) {
-      return `${name} 👑`;
+    if (name.includes('نگين تاجي') || name.includes('نگین تاجی')) {
+      return 'نگین 👑 ای زریر';
     }
     return name;
   }
@@ -490,6 +490,136 @@
     return { allowed: true };
   }
 
+  // --- جدول پیش‌نیازهای مصوب دروس اختیاری طبق فایل آموزش دانشکده ---
+  const ELECTIVE_PREREQS_CONFIG = {
+    // [اقتصاد رفتاری]: اقتصاد کلان ۲، اقتصاد خرد ۲
+    '1701240': {
+      courseName: 'اقتصاد رفتاری',
+      prereqs: ['اقتصاد کلان ۲', 'اقتصاد خرد ۲']
+    },
+    // [پژوهش عملیاتی]: ریاضی ۲
+    '1701252': {
+      courseName: 'پژوهش عملیاتی',
+      prereqs: ['ریاضی ۲ (ریاضیات برای اقتصاد ۲)']
+    },
+    // [اقتصاد انرژی]: اقتصاد منابع طبیعی و محیط زیست
+    '1701157': {
+      courseName: 'اقتصاد انرژی',
+      prereqs: ['اقتصاد منابع طبیعی و محیط زیست']
+    },
+    // [اقتصاد مالی]: پول و بانکداری
+    '1701220': {
+      courseName: 'اقتصاد مالی',
+      prereqs: ['پول و بانکداری']
+    },
+    // [اصول بازاریابی]: اقتصاد خرد ۲
+    '1701216': {
+      courseName: 'اصول بازاریابی',
+      prereqs: ['اقتصاد خرد ۲']
+    },
+    // [مدیریت مالی]: اصول حسابداری ۲
+    '2001170': {
+      courseName: 'مدیریت مالی',
+      prereqs: ['اصول حسابداری ۲']
+    },
+    // [بازار بورس و اوراق بهادار]: اقتصاد کلان ۲
+    '1701057': {
+      courseName: 'بازار بورس و اوراق بهادار',
+      prereqs: ['اقتصاد کلان ۲']
+    },
+    // [تجزیه تحلیل صورت های مالی]: حسابداری شرکت ها
+    '1701221': {
+      courseName: 'تجزیه و تحلیل صورت‌های مالی',
+      prereqs: ['حسابداری شرکت‌ها']
+    },
+    // [حسابداری شرکت ها]: اصول حسابداری ۲
+    'حسابداری شرکت': {
+      courseName: 'حسابداری شرکت‌ها',
+      prereqs: ['اصول حسابداری ۲']
+    }
+  };
+
+  function getElectivePrereqInfo(course) {
+    if (!course || course.isGeneral) return null;
+    const baseCode = (course.code || '').split('_')[0];
+    if (ELECTIVE_PREREQS_CONFIG[baseCode]) {
+      return ELECTIVE_PREREQS_CONFIG[baseCode];
+    }
+    const clean = normalizeName(course.name);
+    if (clean.includes('رفتاری') || clean.includes('رفتاري')) return ELECTIVE_PREREQS_CONFIG['1701240'];
+    if (clean.includes('پژوهش')) return ELECTIVE_PREREQS_CONFIG['1701252'];
+    if (clean.includes('انرژی') || clean.includes('انرژي')) return ELECTIVE_PREREQS_CONFIG['1701157'];
+    if (clean.includes('اقتصاد مالی') || clean.includes('اقتصاد مالي')) return ELECTIVE_PREREQS_CONFIG['1701220'];
+    if (clean.includes('بازاریابی') || clean.includes('بازاريابي')) return ELECTIVE_PREREQS_CONFIG['1701216'];
+    if (clean.includes('مدیریت مالی') || clean.includes('مديريت مالي')) return ELECTIVE_PREREQS_CONFIG['2001170'];
+    if (clean.includes('بورس') || clean.includes('اوراق بهادار')) return ELECTIVE_PREREQS_CONFIG['1701057'];
+    if (clean.includes('صورت های مالی') || clean.includes('صورتهاي مالي') || clean.includes('صورت‌های مالی')) return ELECTIVE_PREREQS_CONFIG['1701221'];
+    if (clean.includes('حسابداری شرکت')) return ELECTIVE_PREREQS_CONFIG['حسابداری شرکت'];
+    return null;
+  }
+
+  let pendingPrereqCourse = null;
+  let pendingPrereqSuccessCallback = null;
+
+  function openPrereqConfirmModal(course, prereqInfo, onSuccess = null) {
+    pendingPrereqCourse = course;
+    pendingPrereqSuccessCallback = onSuccess;
+    const modal = document.getElementById('prereqConfirmModal');
+    const titleEl = document.getElementById('prereqModalTitle');
+    const bodyEl = document.getElementById('prereqModalBody');
+    if (!modal || !bodyEl) return;
+
+    if (titleEl) {
+      titleEl.innerHTML = `⚠️ استعلام پیش‌نیاز درس «${course.name}»`;
+    }
+
+    const prereqListHtml = (prereqInfo.prereqs || []).map(p => `<li><span>📌</span> <strong>${p}</strong></li>`).join('');
+
+    bodyEl.innerHTML = `
+      <div class="prereq-course-banner">
+        <span class="prereq-course-banner-title">📚 ${course.name} (کد: ${toPersianDigits(course.code)})</span>
+        <span class="badge primary">${toPersianDigits(course.units || 2)} واحد</span>
+      </div>
+      <div class="prereq-items-box">
+        <div class="prereq-items-label">
+          <span>📋</span>
+          <span>پیش‌نیاز(های) رسمی آموزش برای این درس:</span>
+        </div>
+        <ul class="prereq-list">
+          ${prereqListHtml}
+        </ul>
+      </div>
+      <div class="prereq-question-text">
+        آیا این دروس پیش‌نیاز را قبلاً در کارنامه ترم‌های گذشته با موفقیت پاس کرده‌اید؟
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePrereqConfirmModal() {
+    const modal = document.getElementById('prereqConfirmModal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+    pendingPrereqCourse = null;
+    pendingPrereqSuccessCallback = null;
+  }
+
+  function handleAddCourseAttempt(course, onSuccess = null) {
+    if (!course) return false;
+    const prereqInfo = getElectivePrereqInfo(course);
+    if (prereqInfo) {
+      openPrereqConfirmModal(course, prereqInfo, onSuccess);
+      return false;
+    }
+    const added = addCourse(course);
+    if (added && typeof onSuccess === 'function') {
+      onSuccess();
+    }
+    return added;
+  }
+
   function addCourse(course, silent = false) {
     const check = canAddCourse(course);
     if (!check.allowed) {
@@ -527,13 +657,30 @@
     updateUI();
 
     if (!silent) {
+      const has8AmSession = (course.sessions || []).some(s => {
+        const t = (s.time || '').trim();
+        return t.startsWith('08:') || t.startsWith('8:') || t.startsWith('۰۸:') || t.startsWith('۸:');
+      });
+      const has5PmSession = (course.sessions || []).some(s => {
+        const t = (s.time || '').trim();
+        return t.startsWith('17:') || t.startsWith('۱۷:');
+      });
+      const isFullGeneral = course.isGeneral && course.capacity > 0 && (course.registered || 0) >= course.capacity;
+
       if (classConflictCourse) {
-        showToast(
-          `خطای جدی تداخل کلاسی: درس «${course.name}» با درس «${classConflictCourse.name}» در روز ${conflictDay} ساعت ${toPersianDigits(conflictTime)} تداخل داره و قانوناً نمی‌تونی جفتش رو برداری! ولی به برنامه اضافه شد تا خودت تنظیم کنی.`,
-          'danger'
-        );
-      } else if (course.isGeneral && course.capacity > 0 && (course.registered || 0) >= course.capacity) {
+        let msg = `خطای جدی تداخل کلاسی: درس «${course.name}» با درس «${classConflictCourse.name}» در روز ${conflictDay} ساعت ${toPersianDigits(conflictTime)} تداخل داره و قانوناً نمی‌تونی جفتش رو برداری! ولی به برنامه اضافه شد تا خودت تنظیم کنی.`;
+        if (has8AmSession) {
+          msg += ' در ضمن ساعت شروع کلاس 8 صبحه ولی تو باید 5 صبح پاشی ترافیک همت گیر نکنی!';
+        }
+        showToast(msg, 'danger');
+      } else if (isFullGeneral && has8AmSession) {
+        showToast(`درس «${course.name}» با ظرفیت تکمیل اضافه شد (امیدوار باش انصرافی بده برداری!). در ضمن ساعت شروع کلاس ۸ صبحه ولی تو باید ۵ صبح پاشی ترافیک همت گیر نکنی!`, 'warning');
+      } else if (isFullGeneral) {
         showToast(`درس «${course.name}» با ظرفیت تکمیل (${toPersianDigits(course.registered)} از ${toPersianDigits(course.capacity)} نفر) اضافه شد. امیدوار باش انصرافی بده برداری!`, 'warning');
+      } else if (has8AmSession) {
+        showToast(`درس «${course.name}» اضافه شد. ساعت شروع کلاس 8 صبحه ولی تو باید 5 صبح پاشی ترافیک همت گیر نکنی!`, 'info');
+      } else if (has5PmSession) {
+        showToast(`درس «${course.name}» اضافه شد. آخرین بازمانده دانشکده؛ حراست کلید می‌ندازه، تو هنوز پای تخته‌ای!`, 'info');
       } else {
         showToast(`درس «${course.name}» اضافه شد. به جمع بدهکاران شب امتحان خوش آمدید.`, 'success');
       }
@@ -701,9 +848,9 @@
       actionBtn.style.borderColor = isFull ? '#ef4444' : 'transparent';
       actionBtn.disabled = false;
       actionBtn.onclick = () => {
-        if (addCourse(c)) {
+        handleAddCourseAttempt(c, () => {
           renderInspector();
-        }
+        });
       };
     }
   }
@@ -1237,7 +1384,7 @@
         if (e.target.closest('button')) {
           e.stopPropagation();
           const action = e.target.getAttribute('data-action');
-          if (action === 'add') addCourse(course);
+          if (action === 'add') handleAddCourseAttempt(course);
           else if (action === 'remove') removeCourse(course.id);
           return;
         }
@@ -2104,9 +2251,9 @@
       const addBtn = recCard.querySelector('.src-add-btn');
       if (addBtn) {
         addBtn.addEventListener('click', () => {
-          if (addCourse(recCourse)) {
+          handleAddCourseAttempt(recCourse, () => {
             closeEmptySlotModal();
-          }
+          });
         });
       }
 
@@ -2200,9 +2347,9 @@
       const addBtn = card.querySelector('.btn-add-cand');
       if (addBtn) {
         addBtn.addEventListener('click', () => {
-          if (addCourse(course)) {
+          handleAddCourseAttempt(course, () => {
             closeEmptySlotModal();
-          }
+          });
         });
       }
 
@@ -2835,6 +2982,49 @@
       });
     }
 
+    // کنترل‌های مودال استعلام پیش‌نیاز دروس اختیاری طبق بخشنامه
+    const closePrereqModalBtn = document.getElementById('closePrereqModalBtn');
+    const prereqRejectBtn = document.getElementById('prereqRejectBtn');
+    const prereqAcceptBtn = document.getElementById('prereqAcceptBtn');
+    const prereqConfirmModal = document.getElementById('prereqConfirmModal');
+
+    if (closePrereqModalBtn) closePrereqModalBtn.addEventListener('click', closePrereqConfirmModal);
+    if (prereqConfirmModal) {
+      prereqConfirmModal.addEventListener('click', (e) => {
+        if (e.target === prereqConfirmModal) {
+          closePrereqConfirmModal();
+        }
+      });
+    }
+
+    if (prereqRejectBtn) {
+      prereqRejectBtn.addEventListener('click', () => {
+        if (pendingPrereqCourse) {
+          const cName = pendingPrereqCourse.name;
+          closePrereqConfirmModal();
+          showToast(`به علت عدم گذراندن پیش‌نیازهای مصوب آموزش، درس «${cName}» به برنامه اضافه نشد.`, 'warning');
+        } else {
+          closePrereqConfirmModal();
+        }
+      });
+    }
+
+    if (prereqAcceptBtn) {
+      prereqAcceptBtn.addEventListener('click', () => {
+        if (pendingPrereqCourse) {
+          const c = pendingPrereqCourse;
+          const cb = pendingPrereqSuccessCallback;
+          closePrereqConfirmModal();
+          const added = addCourse(c);
+          if (added && typeof cb === 'function') {
+            cb();
+          }
+        } else {
+          closePrereqConfirmModal();
+        }
+      });
+    }
+
     // بستن مودال‌ها با کلید Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -2842,6 +3032,7 @@
         closeSwitchGroupModal();
         closeEmptySlotModal();
         closeGeneralPassedModal();
+        closePrereqConfirmModal();
         closeInspector();
       }
     });

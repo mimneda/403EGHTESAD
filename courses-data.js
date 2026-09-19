@@ -451,7 +451,7 @@ window.COURSES_DATA = [
       "date": "1405.11.13",
       "time": "15:00-17:00"
     },
-    "prerequisites": "پول و بانکداری",
+    "prerequisites": "اقتصاد کلان ۲",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1133,7 +1133,7 @@ window.COURSES_DATA = [
       "date": "1405.11.17",
       "time": "10:00-12:00"
     },
-    "prerequisites": "اقتصاد خرد ۲",
+    "prerequisites": "اقتصاد منابع طبیعی و محیط زیست",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1367,7 +1367,7 @@ window.COURSES_DATA = [
       "date": "1405.11.13",
       "time": "08:00-10:00"
     },
-    "prerequisites": "اصول سازمان و مدیریت",
+    "prerequisites": "اقتصاد خرد ۲",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1393,8 +1393,8 @@ window.COURSES_DATA = [
       "date": "1405.11.06",
       "time": "08:00-10:00"
     },
-    "prerequisites": "ندارد",
-    "corequisites": "پول و بانکداری (هم‌نیاز مصوب)",
+    "prerequisites": "پول و بانکداری",
+    "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
     "priority": 2,
@@ -1419,7 +1419,7 @@ window.COURSES_DATA = [
       "date": "1405.11.11",
       "time": "15:00-17:00"
     },
-    "prerequisites": "اصول حسابداری ۱",
+    "prerequisites": "حسابداری شرکت‌ها",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1445,7 +1445,7 @@ window.COURSES_DATA = [
       "date": "1405.11.14",
       "time": "15:00-17:00"
     },
-    "prerequisites": "اقتصاد خرد ۲",
+    "prerequisites": "اقتصاد کلان ۲، اقتصاد خرد ۲",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1471,7 +1471,7 @@ window.COURSES_DATA = [
       "date": "1405.11.14",
       "time": "15:00-17:00"
     },
-    "prerequisites": "اقتصاد خرد ۲",
+    "prerequisites": "اقتصاد کلان ۲، اقتصاد خرد ۲",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1527,7 +1527,7 @@ window.COURSES_DATA = [
       "date": "1405.11.13",
       "time": "08:00-10:00"
     },
-    "prerequisites": "ریاضیات برای اقتصاد ۲",
+    "prerequisites": "ریاضی ۲",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1553,7 +1553,7 @@ window.COURSES_DATA = [
       "date": "1405.11.13",
       "time": "08:00-10:00"
     },
-    "prerequisites": "ریاضیات برای اقتصاد ۲",
+    "prerequisites": "ریاضی ۲",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1605,7 +1605,7 @@ window.COURSES_DATA = [
       "date": "1405.11.06",
       "time": "13:00-15:00"
     },
-    "prerequisites": "ندارد",
+    "prerequisites": "اصول حسابداری ۲",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
@@ -1631,7 +1631,7 @@ window.COURSES_DATA = [
       "date": "1405.11.06",
       "time": "13:00-15:00"
     },
-    "prerequisites": "ندارد",
+    "prerequisites": "اصول حسابداری ۲",
     "corequisites": "ندارد",
     "isEconometrics": false,
     "disabledReason": null,
