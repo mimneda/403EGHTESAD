@@ -385,6 +385,16 @@
       return fitsInEmptySlots;
     });
 
+    // اولویت‌دهی هوشمند بر اساس ظرفیت و تعداد ثبت‌نامی:
+    // ۱. ابتدا دروسی که هنوز جای خالی دارند (رو به اتمام‌ها در صدر برای شکار فوری)
+    // ۲. سپس دروسی که ظرفیتشان ۳۰/۳۰ پر شده (امید به انصرافی)
+    candidates.sort((a, b) => {
+      const isFullA = (a.capacity > 0 && (a.registered || 0) >= a.capacity);
+      const isFullB = (b.capacity > 0 && (b.registered || 0) >= b.capacity);
+      if (isFullA !== isFullB) return isFullA ? 1 : -1;
+      return (b.registered || 0) - (a.registered || 0);
+    });
+
     return candidates;
   }
 
@@ -522,6 +532,8 @@
           `خطای جدی تداخل کلاسی: درس «${course.name}» با درس «${classConflictCourse.name}» در روز ${conflictDay} ساعت ${toPersianDigits(conflictTime)} تداخل داره و قانوناً نمی‌تونی جفتش رو برداری! ولی به برنامه اضافه شد تا خودت تنظیم کنی.`,
           'danger'
         );
+      } else if (course.isGeneral && course.capacity > 0 && (course.registered || 0) >= course.capacity) {
+        showToast(`درس «${course.name}» با ظرفیت تکمیل (${toPersianDigits(course.registered)} از ${toPersianDigits(course.capacity)} نفر) اضافه شد. امیدوار باش انصرافی بده برداری!`, 'warning');
       } else {
         showToast(`درس «${course.name}» اضافه شد. به جمع بدهکاران شب امتحان خوش آمدید.`, 'success');
       }
@@ -633,7 +645,8 @@
     
     let unitsText = `${toPersianDigits(c.units)} واحد (ظرفیت: ${toPersianDigits(c.capacity)})`;
     if (c.isGeneral) {
-      unitsText += ` [گرایش: ${getClusterTitle(c.cluster)} - ${c.gender === 'خانم' ? 'ویژه خواهران' : (c.gender === 'آقا' ? 'ویژه برادران' : 'مختلط')}]`;
+      const isFull = c.capacity > 0 && (c.registered || 0) >= c.capacity;
+      unitsText = `${toPersianDigits(c.units)} واحد (ثبت‌نامی: ${toPersianDigits(c.registered || 0)} از ${toPersianDigits(c.capacity)} نفر ${isFull ? '🔴 ظرفیت تکمیل' : ''}) [گرایش: ${getClusterTitle(c.cluster)} - ${c.gender === 'خانم' ? 'ویژه خواهران' : (c.gender === 'آقا' ? 'ویژه برادران' : 'مختلط')}]`;
     }
     document.getElementById('inspUnits').textContent = unitsText;
 
@@ -681,10 +694,11 @@
         renderInspector();
       };
     } else {
-      actionBtn.textContent = 'افزودن به برنامه +';
-      actionBtn.className = 'btn btn-primary';
-      actionBtn.style.color = '#fff';
-      actionBtn.style.borderColor = 'transparent';
+      const isFull = c.isGeneral && c.capacity > 0 && (c.registered || 0) >= c.capacity;
+      actionBtn.textContent = isFull ? 'افزودن به برنامه (امید به انصرافی) +' : 'افزودن به برنامه +';
+      actionBtn.className = isFull ? 'btn btn-outline full-capacity-add' : 'btn btn-primary';
+      actionBtn.style.color = isFull ? '#f87171' : '#fff';
+      actionBtn.style.borderColor = isFull ? '#ef4444' : 'transparent';
       actionBtn.disabled = false;
       actionBtn.onclick = () => {
         if (addCourse(c)) {
@@ -774,6 +788,18 @@
 
     listContainer.appendChild(controlPanel);
 
+    // بنر راهنمای استراتژی شکار گلستان
+    const hunterBox = document.createElement('div');
+    hunterBox.className = 'general-hunter-strategy-box';
+    hunterBox.innerHTML = `
+      <span class="hunter-icon">🎯</span>
+      <div>
+        <strong>استراتژی هوشمند شکار گلستان:</strong>
+        دروس عمومی بر اساس <strong>بیشترین تعداد ثبت‌نامی ترم‌بالایی‌ها</strong> مرتب شده‌اند. گروه‌هایی که با برچسب <strong>⚡ شکار فوری</strong> مشخص شده‌اند ظرفیتشان رو به اتمام است؛ این موارد را در ثانیه‌های اول انتخاب واحد بردارید. دروسی که با <strong>🔴 ظرفیت تکمیل</strong> مشخص شده‌اند توسط ترم‌بالایی‌ها پر شده‌اند اما با دکمه <strong>«امید به انصرافی»</strong> امکان قرار دادن در لیست را دارید!
+      </div>
+    `;
+    listContainer.appendChild(hunterBox);
+
     // ۲. باکس پیشنهادهای هوشمند متناسب با جاخالی‌های هفتگی دانشجو
     const recs = getSmartGeneralRecommendations();
     if (recs.length > 0 && currentGenerals.length < 2 && !(currentTheology.length >= 1 && passedGeneralCourses.includes('danesh_khanevadeh'))) {
@@ -806,6 +832,39 @@
           ${displayRecs.map(rc => {
             const sessStr = (rc.sessions || []).map(s => `${s.day} ${toPersianDigits(s.time)}`).join(' | ');
             const examStr = rc.exam && rc.exam.date ? `${toPersianDigits(rc.exam.date)} (${toPersianDigits(rc.exam.time)})` : 'نامشخص';
+            
+            const cap = rc.capacity || 0;
+            const reg = rc.registered || 0;
+            const isFull = cap > 0 && reg >= cap;
+            const remaining = Math.max(0, cap - reg);
+            const isUrgent = !isFull && cap > 0 && (reg >= 20 || remaining <= 7);
+
+            let capBadge = `<span class="badge" style="font-size: 0.65rem; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-secondary);">👥 ${toPersianDigits(reg)}/${toPersianDigits(cap)}</span>`;
+            if (isFull) {
+              capBadge = `<span class="badge danger-tag" style="font-size: 0.65rem; background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.35);">🔴 تکمیل ظرفیت</span>`;
+            } else if (isUrgent) {
+              capBadge = `<span class="badge warning-tag" style="font-size: 0.65rem; background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35);">⚡ شکار (${toPersianDigits(remaining)} صندلی)</span>`;
+            }
+
+            let btnHtml = `
+              <button type="button" class="btn btn-primary btn-sm btn-rec-add" data-id="${rc.id}" style="font-size: 0.76rem; padding: 0.25rem 0.65rem;">
+                + افزودن به برنامه
+              </button>
+            `;
+            if (isFull) {
+              btnHtml = `
+                <button type="button" class="btn btn-sm btn-rec-add full-capacity-add" data-id="${rc.id}" style="font-size: 0.73rem; padding: 0.25rem 0.55rem;" title="امیدوار باش انصرافی بده برداری">
+                  + امید به انصرافی
+                </button>
+              `;
+            } else if (isUrgent) {
+              btnHtml = `
+                <button type="button" class="btn btn-sm btn-rec-add urgent-hunt-add" data-id="${rc.id}" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;" title="شکار سریع در گلستان">
+                  ⚡ شکار فوری
+                </button>
+              `;
+            }
+
             return `
               <div class="rec-course-card">
                 <div>
@@ -816,15 +875,14 @@
                   <div class="rec-card-meta">
                     <div>👨‍🏫 استاد: <strong>${formatInstructor(rc.instructor)}</strong></div>
                     <div>📝 آزمون: ${examStr}</div>
+                    <div style="margin-top: 0.25rem;">${capBadge}</div>
                   </div>
                   <div class="rec-card-fit-slot">
                     <span>🕒 جاخالی مناسب: ${sessStr}</span>
                   </div>
                 </div>
                 <div style="margin-top: 0.4rem; display: flex; justify-content: flex-end;">
-                  <button type="button" class="btn btn-primary btn-sm btn-rec-add" data-id="${rc.id}" style="font-size: 0.76rem; padding: 0.25rem 0.65rem;">
-                    + افزودن به برنامه
-                  </button>
+                  ${btnHtml}
                 </div>
               </div>
             `;
@@ -915,11 +973,24 @@
       return;
     }
 
-    // مرتب‌سازی: دروس قابل اخذ ابتدا، سپس قفل‌شده‌ها
+    // الگوریتم مرتب‌سازی هوشمند شکار:
+    // ۱. دروس گرایش‌های قفل‌شده یا بدون پیش‌نیاز به انتهای لیست می‌روند.
+    // ۲. در میان دروس مجاز، ابتدا دروسی که هنوز جای خالی دارند نمایش داده می‌شوند تا کاربر آن‌ها را شکار کند.
+    // ۳. این دروس با جای خالی به ترتیب «بیشترین ثبت‌نامی» (پرتقاضاترین‌ها) مرتب می‌شوند تا سرعت اتمام مشخص شود.
+    // ۴. سپس دروسی که ظرفیتشان توسط ترم‌بالایی‌ها پر شده نمایش داده می‌شوند (امید به انصرافی).
     filteredGenerals.sort((a, b) => {
       const lockA = isClusterLocked(a.cluster) || !isCoursePrereqMet(a);
       const lockB = isClusterLocked(b.cluster) || !isCoursePrereqMet(b);
       if (lockA !== lockB) return lockA ? 1 : -1;
+
+      const isFullA = (a.capacity > 0 && (a.registered || 0) >= a.capacity);
+      const isFullB = (b.capacity > 0 && (b.registered || 0) >= b.capacity);
+      if (isFullA !== isFullB) return isFullA ? 1 : -1;
+
+      const regA = a.registered || 0;
+      const regB = b.registered || 0;
+      if (regA !== regB) return regB - regA;
+
       return a.name.localeCompare(b.name, 'fa');
     });
 
@@ -929,6 +1000,21 @@
       const isLocked = isClusterLocked(course.cluster);
       const isPrereqOk = isCoursePrereqMet(course);
       const canTermAdd = canAddGeneralCourseInCurrentTerm(course);
+
+      const cap = course.capacity || 0;
+      const reg = course.registered || 0;
+      const isFull = cap > 0 && reg >= cap;
+      const remaining = Math.max(0, cap - reg);
+      const isUrgent = !isFull && cap > 0 && (reg >= 20 || remaining <= 7);
+
+      let capacityBadge = '';
+      if (isFull) {
+        capacityBadge = `<span class="badge danger-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 800;">🔴 ظرفیت تکمیل (${toPersianDigits(reg)} / ${toPersianDigits(cap)})</span>`;
+      } else if (isUrgent) {
+        capacityBadge = `<span class="badge warning-tag" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-weight: 800;">⚡ شکار فوری (تنها ${toPersianDigits(remaining)} صندلی مانده)</span>`;
+      } else if (cap > 0) {
+        capacityBadge = `<span class="badge" style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-secondary);">👥 ثبت‌نام: ${toPersianDigits(reg)} از ${toPersianDigits(cap)} نفر</span>`;
+      }
 
       let statusActionBtn = '';
       let statusBadge = '';
@@ -943,6 +1029,10 @@
         statusActionBtn = '<button class="card-action-btn disabled" disabled title="طبق چارت ابتدا باید اندیشه اسلامی ۱ را پاس کرده باشید">پیش‌نیاز اندیشه ۱ ⚠️</button>';
       } else if (!canTermAdd.allowed) {
         statusActionBtn = `<button class="card-action-btn disabled" disabled title="${canTermAdd.reason}">سقف معارف پر است 🚫</button>`;
+      } else if (isFull) {
+        statusActionBtn = '<button class="card-action-btn add full-capacity-add" data-action="add" title="امیدوار باش انصرافی بده برداری">+ افزودن (امید به انصرافی)</button>';
+      } else if (isUrgent) {
+        statusActionBtn = '<button class="card-action-btn add urgent-hunt-add" data-action="add" title="شکار سریع این گروه در گلستان">⚡ شکار فوری +</button>';
       } else {
         statusActionBtn = '<button class="card-action-btn add" data-action="add">افزودن +</button>';
       }
@@ -964,6 +1054,7 @@
           <div class="card-badges">
             <span class="badge general-cluster-badge">${getClusterTitle(course.cluster)}</span>
             <span class="badge general-gender-badge ${genderBadgeClass}">${genderLabel}</span>
+            ${capacityBadge}
             ${statusBadge}
             <span class="badge primary">${toPersianDigits(course.units)} واحد</span>
           </div>
@@ -977,6 +1068,7 @@
           <div style="display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.72rem; color: var(--text-secondary);">
             <span>🕒 زمان: ${sessionSummary || 'بدون زمان کلاسی'}</span>
             <span>📝 آزمون: ${examSummary}</span>
+            ${isFull ? '<span style="color: #f87171; font-weight: 750;">⚠️ ظرفیت تکمیل توسط ترم‌بالایی‌ها (امیدوار باش انصرافی بده)</span>' : ''}
           </div>
           <div>
             ${statusActionBtn}
@@ -2078,10 +2170,14 @@
         <div class="scc-details">
           <div>🕒 جلسات هفتگی: <strong>${sessionSummary}</strong></div>
           <div>📝 آزمون پایان‌ترم: <strong>${examSummary}</strong></div>
-          <div>👥 ظرفیت کلاس: <strong>${toPersianDigits(course.capacity || 25)} نفر</strong></div>
+          <div>👥 ظرفیت کلاس: <strong>${course.isGeneral ? `${toPersianDigits(course.registered || 0)} از ${toPersianDigits(course.capacity || 25)} نفر ${(course.capacity > 0 && (course.registered || 0) >= course.capacity) ? '<span style="color: var(--danger-text); font-weight: 800;">(🔴 ظرفیت تکمیل)</span>' : ((course.capacity > 0 && ((course.registered || 0) >= 20 || (course.capacity - (course.registered || 0)) <= 7)) ? '<span style="color: #fbbf24; font-weight: 800;">(⚡ شکار فوری)</span>' : '')}` : `${toPersianDigits(course.capacity || 25)} نفر`}</strong></div>
           <div>🎯 گروه چارت: <strong>${course.isGeneral ? `عمومی (${getClusterTitle(course.cluster)}) - ${course.gender === 'خانم' ? 'خواهران' : (course.gender === 'آقا' ? 'برادران' : 'مختلط')}` : (course.category === 'term5' ? 'دروس اصلی ترم ۵' : (course.category === 'elective' ? 'اختیاری تخصصی' : 'عمومی / سایر'))}</strong></div>
         </div>
-        <div class="scc-conflict-status">${statusHtml}</div>
+        <div class="scc-conflict-status">
+          ${statusHtml}
+          ${(course.isGeneral && course.capacity > 0 && (course.registered || 0) >= course.capacity) ? '<div style="margin-top: 0.25rem; font-size: 0.76rem; color: #f87171; font-weight: 700;">🔴 ظرفیت این گروه توسط ترم‌بالایی‌ها پر شده است؛ اما می‌توانید در برنامه‌تان بگذارید و امیدوار باشید انصرافی بدهد.</div>' : ''}
+          ${(course.isGeneral && course.capacity > 0 && (course.registered || 0) < course.capacity && ((course.registered || 0) >= 20 || (course.capacity - (course.registered || 0)) <= 7)) ? `<div style="margin-top: 0.25rem; font-size: 0.76rem; color: #fbbf24; font-weight: 700;">⚡ اولویت شکار فوری: تنها ${toPersianDigits(course.capacity - (course.registered || 0))} صندلی خالی باقی‌مانده است!</div>` : ''}
+        </div>
         <div class="scc-actions">
           <button class="btn btn-outline btn-sm btn-inspect-cand" data-id="${course.id}">🔍 جزییات</button>
           ${isExactSelected
@@ -2089,7 +2185,13 @@
             : (takenWithOtherProf
                 ? `<button class="btn btn-outline btn-sm btn-switch-prof-cand" style="color: var(--accent); border-color: var(--accent);" title="جابجایی استاد قبلی با این استاد" data-old-id="${takenWithOtherProf.id}" data-new-id="${course.id}">🔄 جابجایی به این استاد</button>
                    <button class="btn btn-danger btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;" title="اخذ همزمان با دو استاد مجاز نیست">🚫 منع دو استاد</button>`
-                : `<button class="btn btn-primary btn-sm btn-add-cand" data-id="${course.id}">+ افزودن این درس</button>`
+                : (course.isGeneral && course.capacity > 0 && (course.registered || 0) >= course.capacity
+                    ? `<button class="btn btn-primary btn-sm btn-add-cand full-capacity-add" data-id="${course.id}" title="امیدوار باش انصرافی بده برداری">+ افزودن (امید به انصرافی)</button>`
+                    : (course.isGeneral && course.capacity > 0 && ((course.registered || 0) >= 20 || (course.capacity - (course.registered || 0)) <= 7)
+                        ? `<button class="btn btn-primary btn-sm btn-add-cand urgent-hunt-add" data-id="${course.id}" title="شکار فوری این گروه در گلستان">⚡ شکار فوری +</button>`
+                        : `<button class="btn btn-primary btn-sm btn-add-cand" data-id="${course.id}">+ افزودن این درس</button>`
+                      )
+                  )
               )
           }
         </div>

@@ -3679,6 +3679,89 @@ html[data-device="mobile"] body {
   border-color: #9333ea;
 }
 
+/* استراتژی شکار گلستان و وضعیت‌های ظرفیت عمومی */
+.general-hunter-strategy-box {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.06));
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.general-hunter-strategy-box .hunter-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.general-hunter-strategy-box strong {
+  color: #fbbf24;
+}
+
+.card-capacity-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.card-capacity-pill.full {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.card-capacity-pill.urgent {
+  background: rgba(245, 158, 11, 0.14) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  animation: pulse-urgent 2s infinite ease-in-out;
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.card-action-btn.full-capacity-add {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #f87171 !important;
+  border: 1.5px dashed rgba(239, 68, 68, 0.55) !important;
+  font-size: 0.74rem !important;
+  padding: 0.35rem 0.6rem !important;
+}
+
+.card-action-btn.full-capacity-add:hover {
+  background: rgba(239, 68, 68, 0.26) !important;
+  border-color: #ef4444 !important;
+}
+
+.card-action-btn.urgent-hunt-add {
+  background: rgba(245, 158, 11, 0.14) !important;
+  color: #fbbf24 !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.55) !important;
+  font-size: 0.75rem !important;
+}
+
+.card-action-btn.urgent-hunt-add:hover {
+  background: #f59e0b !important;
+  color: #000 !important;
+  font-weight: 800;
+}
+
+
 /* Print Friendly Styles */
 @media print {
   .app-header, .guide-board-container, .sidebar-catalog, .bottom-inspector, .view-toggle, .btn, .search-box, .filter-tags, .site-footer, .floating-selected-container, .app-modal {
